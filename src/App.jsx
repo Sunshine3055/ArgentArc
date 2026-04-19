@@ -348,8 +348,36 @@ function getSupabaseClient() {
 function isRecognizedEmail(email) {
   return ALLOWED_MEMBER_EMAILS.includes(slugUser(email));
 }
-
 async function fetchTableData(client, userEmail) {
+  const [
+    profileRes,
+    casesRes,
+    membersRes,
+    smdBaseRes,
+    trainingRes,
+  ] = await Promise.all([
+    client.from("profiles").select("*").eq("email", slugUser(userEmail)).maybeSingle(),
+    client.from("case_records").select("*").order("created_at", { ascending: false }),
+    client.from("member_onboarding").select("*").order("created_at", { ascending: false }),
+    client.from("smd_base").select("*").order("created_at", { ascending: false }),
+    client.from("training_events").select("*").order("created_at", { ascending: false }),
+  ]);
+
+  if (profileRes.error) console.error("profiles fetch error:", profileRes.error);
+  if (casesRes.error) console.error("case_records fetch error:", casesRes.error);
+  if (membersRes.error) console.error("member_onboarding fetch error:", membersRes.error);
+  if (smdBaseRes.error) console.error("smd_base fetch error:", smdBaseRes.error);
+  if (trainingRes.error) console.error("training_events fetch error:", trainingRes.error);
+
+  return {
+    profile: profileRes.data || null,
+    cases: casesRes.data || [],
+    members: membersRes.data || [],
+    smdBase: smdBaseRes.data || [],
+    training: trainingRes.data || [],
+  };
+}
+#async function fetchTableData(client, userEmail) {
   const [{ data: profile }, { data: cases }, { data: members }, { data: smdBase }, { data: training }] = await Promise.all([
     client.from("profiles").select("*").eq("email", slugUser(userEmail)).maybeSingle(),
     client.from("case_records").select("*").order("created_at", { ascending: false }),
@@ -365,7 +393,7 @@ async function fetchTableData(client, userEmail) {
     smdBase: smdBase || [],
     training: training || [],
   };
-}
+}#
 
 async function upsertProfile(client, userEmail) {
   const payload = {
@@ -893,7 +921,7 @@ function NewMemberHub({ members, setMembers, setSmdBase, syncClient, ownerEmail,
       }
     }
   };
-  const addMember = async () => {
+  #const addMember = async () => {
     if (!newName) return;
     const item = {
       member_name: newName,
@@ -924,7 +952,49 @@ function NewMemberHub({ members, setMembers, setSmdBase, syncClient, ownerEmail,
       setSelectedId(localItem.id);
     }
     setNewName(""); setNewAgentId(""); setNewReferralAgent(""); setNewReferralAgentId(""); setNewIssue(""); setNewFollowUp("");
+  };#
+const addMember = async () => {
+  if (!newName) return;
+
+  const item = {
+    member_name: newName,
+    agent_id: newAgentId || `AG-${Math.floor(1000 + Math.random() * 9000)}`,
+    referral_agent_name: newReferralAgent || "",
+    referral_agent_id: newReferralAgentId || "",
+    current_step: onboardingSteps[0],
+    issue: newIssue || `${onboardingSteps[0]} requires follow-up.`,
+    follow_up_date: newFollowUp,
+    notes: "",
+    completed_steps: [],
+    owner_email: ownerEmail,
   };
+
+  if (syncClient) {
+    try {
+      setSyncStatus("Saving...");
+      const saved = await insertMemberOnboarding(syncClient, item);
+      console.log("member insert success:", saved);
+      setMembers((prev) => [saved, ...prev]);
+      setSelectedId(saved.id);
+      setSyncStatus("Saved");
+    } catch (err) {
+      console.error("member insert error:", err);
+      setSyncStatus(`Save error`);
+      return;
+    }
+  } else {
+    const localItem = { id: `MBR-${Date.now()}`, ...item };
+    setMembers((prev) => [localItem, ...prev]);
+    setSelectedId(localItem.id);
+  }
+
+  setNewName("");
+  setNewAgentId("");
+  setNewReferralAgent("");
+  setNewReferralAgentId("");
+  setNewIssue("");
+  setNewFollowUp("");
+};
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.78fr_1.22fr]">
       <Card className="rounded-3xl border-slate-200 shadow-sm"><CardHeader><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><CardTitle>New Member Hub</CardTitle><CardDescription>Licensing, affiliation, and training progress in one pipeline</CardDescription></div><ExportMenu label="New Member Hub" rows={members.map((row) => ({ ...row, completed_steps: (row.completed_steps || []).join(" | ") }))} baseName="new-member-hub" /></div></CardHeader><CardContent className="space-y-4"><div className="rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="text-sm font-medium">Add New Member</div><div className="mt-3 space-y-3"><Input placeholder="Member Name" value={newName} onChange={(e) => setNewName(e.target.value)} /><Input placeholder="Agent ID" value={newAgentId} onChange={(e) => setNewAgentId(e.target.value)} /><Input placeholder="Referral Agent" value={newReferralAgent} onChange={(e) => setNewReferralAgent(e.target.value)} /><Input placeholder="Referral Agent ID" value={newReferralAgentId} onChange={(e) => setNewReferralAgentId(e.target.value)} /><Textarea placeholder="Current issue or support needed" value={newIssue} onChange={(e) => setNewIssue(e.target.value)} className="min-h-[90px]" /><Input type="date" value={newFollowUp} onChange={(e) => setNewFollowUp(e.target.value)} /><PrimaryButton className="w-full" onClick={addMember}><Plus className="mr-2 h-4 w-4" /> Add Member</PrimaryButton></div></div><ScrollArea className="h-[520px] pr-3"><div className="space-y-3">{members.map((member) => { const active = selectedId === member.id; const progress = Math.round(((member.completed_steps || []).length / onboardingSteps.length) * 100); const followUpStatus = getFollowUpStatus(member.follow_up_date); return <button key={member.id} onClick={() => setSelectedId(member.id)} className={cn("w-full rounded-2xl border p-4 text-left transition", active ? "border-[#1f4fa3] bg-blue-50" : "border-slate-200 bg-white hover:bg-slate-50", !active && followUpStatus === "overdue" && "border-rose-300 bg-rose-50", !active && followUpStatus === "soon" && "border-amber-300 bg-amber-50")}><div className="flex items-center justify-between gap-3"><div><div className="font-medium">{member.member_name}</div><div className="mt-1 text-xs text-slate-500">Agent ID: {member.agent_id || "—"}</div><div className="text-xs text-slate-500">Referral Agent: {member.referral_agent_name || "—"}</div><div className="text-xs text-slate-500">Referral Agent ID: {member.referral_agent_id || "—"}</div></div><ChevronRight className="h-4 w-4 text-slate-400" /></div><div className="mt-3 text-sm text-slate-600">Current: {member.current_step}</div><div className="mt-3 h-2 rounded-full bg-slate-200"><div className="h-2 rounded-full bg-[#1f4fa3]" style={{ width: `${progress}%` }} /></div><div className="mt-2 flex items-center justify-between gap-3 text-xs text-slate-500"><span>{progress}% complete · Follow-up: {member.follow_up_date || "—"}</span>{followUpStatus === "overdue" && <span className="font-medium text-rose-600">Overdue</span>}{followUpStatus === "soon" && <span className="font-medium text-amber-600">Due Soon</span>}</div></button>; })}{members.length === 0 && <div className="text-sm text-slate-500">No members in onboarding right now.</div>}</div></ScrollArea></CardContent></Card>
