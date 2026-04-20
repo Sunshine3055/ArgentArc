@@ -335,6 +335,12 @@ async function insertSmdBase(client, row) {
   return data;
 }
 
+async function updateSmdBase(client, id, row) {
+  const { data, error } = await client.from("smd_base").update(row).eq("id", id).select().single();
+  if (error) throw error;
+  return data;
+}
+
 async function insertTrainingEvent(client, row) {
   const { data, error } = await client.from("training_events").insert(row).select().single();
   if (error) throw error;
@@ -1341,10 +1347,22 @@ function NewMemberHub({ members, setMembers, setSmdBase, syncClient, ownerEmail,
           {selectedMember ? (
             <div className="space-y-5">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 p-4"><div className="text-sm text-slate-500">Name</div><div className="mt-2 font-medium">{selectedMember.member_name}</div></div>
-                <div className="rounded-2xl border border-slate-200 p-4"><div className="text-sm text-slate-500">Agent ID</div><div className="mt-2 font-mono font-medium">{selectedMember.agent_id || "—"}</div></div>
-                <div className="rounded-2xl border border-slate-200 p-4"><div className="text-sm text-slate-500">Referral Agent</div><div className="mt-2 font-medium">{selectedMember.referral_agent_name || "—"}</div></div>
-                <div className="rounded-2xl border border-slate-200 p-4"><div className="text-sm text-slate-500">Referral Agent ID</div><div className="mt-2 font-mono font-medium">{selectedMember.referral_agent_id || "—"}</div></div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <div className="text-sm text-slate-500">Name</div>
+                  <Input className="mt-3" value={selectedMember.member_name || ""} onChange={(e) => updateMemberField("member_name", e.target.value)} />
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <div className="text-sm text-slate-500">Agent ID</div>
+                  <Input className="mt-3 font-mono" value={selectedMember.agent_id || ""} onChange={(e) => updateMemberField("agent_id", e.target.value)} />
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <div className="text-sm text-slate-500">Referral Agent</div>
+                  <Input className="mt-3" value={selectedMember.referral_agent_name || ""} onChange={(e) => updateMemberField("referral_agent_name", e.target.value)} />
+                </div>
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <div className="text-sm text-slate-500">Referral Agent ID</div>
+                  <Input className="mt-3 font-mono" value={selectedMember.referral_agent_id || ""} onChange={(e) => updateMemberField("referral_agent_id", e.target.value)} />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1500,13 +1518,61 @@ function TrainingView({ training, setTraining, syncClient, ownerEmail, setSyncSt
   );
 }
 
-function SmdBaseView({ smdBase }) {
+function SmdBaseView({ smdBase, setSmdBase, syncClient, setSyncStatus }) {
+  const [editingId, setEditingId] = useState("");
+  const [editForm, setEditForm] = useState({
+    agent_name: "",
+    agent_id: "",
+    referral_agent_name: "",
+    referral_agent_id: "",
+  });
+
   const referralGroups = smdBase.reduce((acc, agent) => {
     const key = agent.referral_agent_name || "Unassigned";
     if (!acc[key]) acc[key] = [];
     acc[key].push(agent);
     return acc;
   }, {});
+
+  const startEdit = (agent) => {
+    setEditingId(agent.id);
+    setEditForm({
+      agent_name: agent.agent_name || "",
+      agent_id: agent.agent_id || "",
+      referral_agent_name: agent.referral_agent_name || "",
+      referral_agent_id: agent.referral_agent_id || "",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId("");
+    setEditForm({
+      agent_name: "",
+      agent_id: "",
+      referral_agent_name: "",
+      referral_agent_id: "",
+    });
+  };
+
+  const saveEdit = async (id) => {
+    const updated = { ...editForm };
+    setSmdBase((prev) => prev.map((agent) => (agent.id === id ? { ...agent, ...updated } : agent)));
+
+    if (syncClient) {
+      try {
+        setSyncStatus("Saving...");
+        const saved = await updateSmdBase(syncClient, id, updated);
+        setSmdBase((prev) => prev.map((agent) => (agent.id === id ? saved : agent)));
+        setSyncStatus("Saved");
+      } catch (err) {
+        console.error("smd save error:", err);
+        setSyncStatus("Save error");
+        return;
+      }
+    }
+
+    cancelEdit();
+  };
 
   return (
     <div className="space-y-6">
@@ -1522,14 +1588,51 @@ function SmdBaseView({ smdBase }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {smdBase.map((agent) => (
-              <div key={agent.id} className="rounded-2xl border border-slate-200 p-4">
-                <div className="font-medium text-slate-900">{agent.agent_name}</div>
-                <div className="mt-2 text-sm text-slate-500">Agent ID: {agent.agent_id || "—"}</div>
-                <div className="text-sm text-slate-500">Referral Agent: {agent.referral_agent_name || "—"}</div>
-                <div className="text-sm text-slate-500">Referral Agent ID: {agent.referral_agent_id || "—"}</div>
-              </div>
-            ))}
+            {smdBase.map((agent) => {
+              const isEditing = editingId === agent.id;
+              return (
+                <div key={agent.id} className="rounded-2xl border border-slate-200 p-4">
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div>
+                        <Label>Agent Name</Label>
+                        <Input className="mt-2" value={editForm.agent_name} onChange={(e) => setEditForm((prev) => ({ ...prev, agent_name: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label>Agent ID</Label>
+                        <Input className="mt-2 font-mono" value={editForm.agent_id} onChange={(e) => setEditForm((prev) => ({ ...prev, agent_id: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label>Referral Agent</Label>
+                        <Input className="mt-2" value={editForm.referral_agent_name} onChange={(e) => setEditForm((prev) => ({ ...prev, referral_agent_name: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label>Referral Agent ID</Label>
+                        <Input className="mt-2 font-mono" value={editForm.referral_agent_id} onChange={(e) => setEditForm((prev) => ({ ...prev, referral_agent_id: e.target.value }))} />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <PrimaryButton className="flex-1" onClick={() => saveEdit(agent.id)}>Save</PrimaryButton>
+                        <Button variant="outline" className="flex-1 rounded-2xl" onClick={cancelEdit}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-medium text-slate-900">{agent.agent_name}</div>
+                          <div className="mt-2 text-sm text-slate-500">Agent ID: {agent.agent_id || "—"}</div>
+                          <div className="text-sm text-slate-500">Referral Agent: {agent.referral_agent_name || "—"}</div>
+                          <div className="text-sm text-slate-500">Referral Agent ID: {agent.referral_agent_id || "—"}</div>
+                        </div>
+                        <Button size="sm" variant="outline" className="rounded-xl" onClick={() => startEdit(agent)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -1731,7 +1834,14 @@ export default function CaseOperationsCenter() {
           setSyncStatus={setSyncStatus}
         />
       )}
-      {activeSection === "smd" && <SmdBaseView smdBase={smdBase} />}
+      {activeSection === "smd" && (
+        <SmdBaseView
+          smdBase={smdBase}
+          setSmdBase={setSmdBase}
+          syncClient={activeSyncClient}
+          setSyncStatus={setSyncStatus}
+        />
+      )}
       {activeSection === "life" && (
         <CasesView
           title="Life Insurance Case Management"
