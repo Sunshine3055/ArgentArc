@@ -56,40 +56,138 @@ export default function CaseOperationsCenter() {
     }));
 
   useEffect(() => {
+  let isMounted = true;
+
+  const initAuth = async () => {
     if (!client) {
-      setAuthChecked(true);
+      if (isMounted) {
+        setAuthChecked(true);
+        setSyncMode("local");
+        setSyncStatus("Supabase not configured");
+      }
       return;
     }
 
-    client.auth.getSession().then(async ({ data }) => {
+    try {
+      const { data, error } = await client.auth.getSession();
+
+      if (error) {
+        throw error;
+      }
+
       const email = data.session?.user?.email || "";
 
       if (email) {
         const clean = slugUser(email);
-        setUserEmail(clean);
+        if (isMounted) {
+          setUserEmail(clean);
+        }
 
         try {
           await upsertProfile(client, clean);
           const remoteData = await fetchTableData(client, clean);
-          setDataStore(remoteData);
-          setSyncMode("cloud");
-          setSyncStatus("Cloud synced");
+
+          if (isMounted) {
+            setDataStore(remoteData);
+            setSyncMode("cloud");
+            setSyncStatus("Cloud synced");
+          }
         } catch (err) {
           console.error("initial session load error:", err);
-          setDataStore({
-            profile: null,
-            cases: [],
-            members: [],
-            smdBase: [],
-            training: [],
-          });
-          setSyncMode("local");
-          setSyncStatus("Cloud error");
+
+          if (isMounted) {
+            setDataStore({
+              profile: null,
+              cases: [],
+              members: [],
+              smdBase: [],
+              training: [],
+            });
+            setSyncMode("local");
+            setSyncStatus("Cloud error");
+          }
         }
       }
+    } catch (err) {
+      console.error("auth init error:", err);
 
-      setAuthChecked(true);
-    });
+      if (isMounted) {
+        setUserEmail("");
+        setDataStore(defaultData);
+        setSyncMode("local");
+        setSyncStatus("Auth error");
+      }
+    } finally {
+      if (isMounted) {
+        setAuthChecked(true);
+      }
+    }
+  };
+
+  initAuth();
+
+  if (!client) {
+    return () => {
+      isMounted = false;
+    };
+  }
+
+  const { data: listener } = client.auth.onAuthStateChange(async (_event, session) => {
+    try {
+      const email = session?.user?.email || "";
+
+      if (email) {
+        const clean = slugUser(email);
+        if (isMounted) {
+          setUserEmail(clean);
+        }
+
+        try {
+          await upsertProfile(client, clean);
+          const remoteData = await fetchTableData(client, clean);
+
+          if (isMounted) {
+            setDataStore(remoteData);
+            setSyncMode("cloud");
+            setSyncStatus("Cloud synced");
+          }
+        } catch (err) {
+          console.error("auth state load error:", err);
+
+          if (isMounted) {
+            setDataStore({
+              profile: null,
+              cases: [],
+              members: [],
+              smdBase: [],
+              training: [],
+            });
+            setSyncMode("local");
+            setSyncStatus("Cloud error");
+          }
+        }
+      } else {
+        if (isMounted) {
+          setUserEmail("");
+          setDataStore(defaultData);
+          setSyncMode("local");
+          setSyncStatus("Logged out");
+        }
+      }
+    } catch (err) {
+      console.error("auth state error:", err);
+    } finally {
+      if (isMounted) {
+        setAuthChecked(true);
+      }
+    }
+  });
+
+  return () => {
+    isMounted = false;
+    listener?.subscription?.unsubscribe?.();
+  };
+}, [client]);
 
     const { data: listener } = client.auth.onAuthStateChange(async (_event, session) => {
       const email = session?.user?.email || "";
@@ -219,7 +317,7 @@ export default function CaseOperationsCenter() {
   }
 
   if (!userEmail) {
-    return <AuthPanel onAuthSuccess={handleAuthSuccess} createClient={createClient} />;
+    return <AuthPanel onAuthSuccess={handleAuthSuccess} />;
   }
 
   const activeSyncClient = syncMode === "cloud" ? client : null;
