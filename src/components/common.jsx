@@ -3,7 +3,6 @@ import { Cloud, Download, FileSpreadsheet, FileText, HardDrive, RefreshCcw } fro
 import { statusClasses } from "../constants";
 import { exportRowsToCsv, exportRowsToPdf, exportRowsToXlsx } from "../utils/exporters";
 import { Badge, Button, Card, CardContent } from "./ui";
-import { motion } from "framer-motion";
 import { cn } from "../utils/helpers";
 
 export function ExportMenu({ label, rows, baseName }) {
@@ -45,7 +44,7 @@ export function PrimaryButton({ children, className = "", ...props }) {
 
 export function KpiCard({ title, value, hint, icon: Icon }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+    <div>
       <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
         <CardContent className="flex items-start justify-between p-6">
           <div>
@@ -56,6 +55,7 @@ export function KpiCard({ title, value, hint, icon: Icon }) {
           <div className="rounded-2xl bg-slate-100 p-3 text-[#1f4fa3]"><Icon className="h-5 w-5" /></div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 }
+
