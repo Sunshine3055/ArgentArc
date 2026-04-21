@@ -29,7 +29,7 @@ export default function CaseOperationsCenter() {
   const [syncStatus, setSyncStatus] = useState("Ready");
 
   const { cases, members, smdBase, training } = dataStore;
-  const client = getSupabaseClient(createClient);
+  const client = getSupabaseClient();
 
   const setCases = (updater) =>
     setDataStore((prev) => ({
