@@ -94,7 +94,7 @@ export default function CaseOperationsCenter() {
     const { data: listener } = client.auth.onAuthStateChange(async (_event, session) => {
       const email = session?.user?.email || "";
 
-      if (email && isRecognizedEmail(email)) {
+      if (email) {
         const clean = slugUser(email);
         setUserEmail(clean);
 
