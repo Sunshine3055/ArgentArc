@@ -49,3 +49,4 @@ export default function AuthPanel({ onAuthSuccess, createClient }) {
     </Card>
   );
 }
+
