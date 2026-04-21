@@ -64,3 +64,4 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
     </div>
   );
 }
+
