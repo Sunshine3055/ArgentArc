@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import AuthPanel from "./components/AuthPanel";
 import AppShell from "./components/AppShell";
 import { defaultData } from "./constants";
-import { loadLocalData, saveLocalData, slugUser, getStorageKey, isRecognizedEmail } from "./utils/helpers";
+import { loadLocalData, saveLocalData, slugUser, getStorageKey } from "./utils/helpers";
 import { fetchTableData, getSupabaseClient, upsertProfile } from "./lib/supabase";
 
 const DashboardView = lazy(() => import("./views/DashboardView"));
@@ -64,7 +64,7 @@ export default function CaseOperationsCenter() {
     client.auth.getSession().then(async ({ data }) => {
       const email = data.session?.user?.email || "";
 
-      if (email && isRecognizedEmail(email)) {
+      if (email) {
         const clean = slugUser(email);
         setUserEmail(clean);
 
