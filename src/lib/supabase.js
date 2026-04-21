@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { slugUser, normalizeMember } from "../utils/helpers";
 
 const SUPABASE_URL =
@@ -5,13 +6,14 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
   (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_SUPABASE_ANON_KEY) || "";
 
-export function getSupabaseClient(createClient) {
+let supabaseClient = null;
+
+export function getSupabaseClient() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-  try {
-    return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } catch {
-    return null;
+  if (!supabaseClient) {
+    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
+  return supabaseClient;
 }
 
 export async function isAllowedUser(client, email) {
