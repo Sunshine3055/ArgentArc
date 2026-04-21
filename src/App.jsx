@@ -38,26 +38,32 @@ export default function CaseOperationsCenter() {
       return;
     }
 
-    client.auth.getSession().then(async ({ data }) => {
-      const email = data.session?.user?.email || "";
-      if (email) {
-        const clean = slugUser(email);
-        setUserEmail(clean);
-        try {
-          await upsertProfile(client, clean);
-          const remoteData = await fetchTableData(client, clean);
-          setDataStore(remoteData);
-          setSyncMode("cloud");
-          setSyncStatus("Cloud synced");
-        } catch (err) {
-          console.error("initial session load error:", err);
-          setDataStore(loadLocalData(clean));
-          setSyncMode("local");
-          setSyncStatus("Loaded locally");
-        }
-      }
-      setAuthChecked(true);
-    });
+   client.auth.getSession().then(async ({ data }) => {
+  const email = data.session?.user?.email || "";
+  if (email && isRecognizedEmail(email)) {
+    const clean = slugUser(email);
+    setUserEmail(clean);
+    try {
+      await upsertProfile(client, clean);
+      const remoteData = await fetchTableData(client, clean);
+      setDataStore(remoteData);
+      setSyncMode("cloud");
+      setSyncStatus("Cloud synced");
+    } catch (err) {
+      console.error("initial session load error:", err);
+      setDataStore({
+        profile: null,
+        cases: [],
+        members: [],
+        smdBase: [],
+        training: [],
+      });
+      setSyncMode("local");
+      setSyncStatus("Cloud error");
+    }
+  }
+  setAuthChecked(true);
+});
 
     const { data: listener } = client.auth.onAuthStateChange(async (_event, session) => {
       const email = session?.user?.email || "";
@@ -70,11 +76,17 @@ export default function CaseOperationsCenter() {
           setDataStore(remoteData);
           setSyncMode("cloud");
           setSyncStatus("Cloud synced");
-        } catch (err) {
+               } catch (err) {
           console.error("auth state load error:", err);
-          setDataStore(loadLocalData(clean));
+          setDataStore({
+            profile: null,
+            cases: [],
+            members: [],
+            smdBase: [],
+            training: [],
+          });
           setSyncMode("local");
-          setSyncStatus("Loaded locally");
+          setSyncStatus("Cloud error");
         }
       } else {
         setUserEmail("");
@@ -112,36 +124,45 @@ export default function CaseOperationsCenter() {
     }
   };
 
-  const handleAuthSuccess = async (email) => {
-    const clean = slugUser(email);
-    setUserEmail(clean);
-    if (!client) {
-      setDataStore(loadLocalData(clean));
-      setSyncMode("local");
-      setSyncStatus("Workspace loaded locally");
-      return;
-    }
-    try {
-      await upsertProfile(client, clean);
-      const remoteData = await fetchTableData(client, clean);
-      setDataStore(remoteData);
-      setSyncMode("cloud");
-      setSyncStatus("Cloud synced");
-    } catch (err) {
-      console.error("auth success load error:", err);
-      setDataStore(loadLocalData(clean));
-      setSyncMode("local");
-      setSyncStatus("Workspace loaded locally");
-    }
-  };
+ const handleSync = async () => {
+  if (!client || !userEmail) {
+    setSyncMode("local");
+    setSyncStatus("Saved locally");
+    if (userEmail) saveLocalData(userEmail, dataStore);
+    return;
+  }
+
+  try {
+    setSyncStatus("Syncing...");
+    const remoteData = await fetchTableData(client, userEmail);
+    setDataStore(remoteData);
+    setSyncMode("cloud");
+    setSyncStatus("Cloud synced");
+  } catch (err) {
+    console.error("handleSync error:", err);
+    setSyncMode("local");
+    setSyncStatus("Cloud error");
+  }
+};
 
   const handleLogout = async () => {
-    if (client) await client.auth.signOut();
+  try {
+    if (client) {
+      await client.auth.signOut();
+    }
+  } catch (err) {
+    console.error("logout error:", err);
+  } finally {
     setUserEmail("");
     setDataStore(defaultData);
     setSyncMode("local");
     setSyncStatus("Logged out");
-  };
+
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  }
+};
 
   if (!authChecked) {
     return <div className="p-8 text-sm text-slate-500">Loading authentication...</div>;
