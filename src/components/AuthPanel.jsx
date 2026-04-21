@@ -1,57 +1,73 @@
-function AuthPanel({ onAuthSuccess }) {
+import React, { useState } from "react";
+import { LogIn, ShieldAlert } from "lucide-react";
+import { getSupabaseClient, isAllowedUser } from "../lib/supabase";
+import { slugUser } from "../utils/helpers";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Button,
+  Input,
+  Label,
+} from "./ui";
+
+export default function AuthPanel({ onAuthSuccess, createClient }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
-  const client = getSupabaseClient();
+  const client = getSupabaseClient(createClient);
 
-  import { getSupabaseClient, isAllowedUser } from "../lib/supabase";
-const handleSignIn = async () => {
-  const cleanEmail = slugUser(email);
+  const handleSignIn = async () => {
+    const cleanEmail = slugUser(email);
 
-  if (!client) {
-    setPassword("");
-    setMessage("Supabase Auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
-    return;
-  }
-
-  try {
-    const allowed = await isAllowedUser(client, cleanEmail);
-
-    if (!allowed) {
+    if (!client) {
       setPassword("");
-      setMessage("Access denied. This email is not approved for this app.");
+      setMessage(
+        "Supabase Auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
+      );
       return;
     }
-  } catch (err) {
-    console.error("allowlist check error:", err);
+
+    try {
+      const allowed = await isAllowedUser(client, cleanEmail);
+
+      if (!allowed) {
+        setPassword("");
+        setMessage("Access denied. This email is not approved for this app.");
+        return;
+      }
+    } catch (err) {
+      console.error("allowlist check error:", err);
+      setPassword("");
+      setMessage("Unable to verify access right now.");
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setPassword("");
+      setMessage("Enter your invited account password.");
+      return;
+    }
+
+    const { error } = await client.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+
+    if (error) {
+      setPassword("");
+      setMessage(error.message);
+      return;
+    }
+
     setPassword("");
-    setMessage("Unable to verify access right now.");
-    return;
-  }
-
-  if (!password || password.length < 6) {
-    setPassword("");
-    setMessage("Enter your invited account password.");
-    return;
-  }
-
-  const { error } = await client.auth.signInWithPassword({
-    email: cleanEmail,
-    password,
-  });
-
-  if (error) {
-    setPassword("");
-    setMessage(error.message);
-    return;
-  }
-
-  setPassword("");
-  setShowPassword(false);
-  setMessage("Signed in.");
-  onAuthSuccess(cleanEmail);
-};
+    setShowPassword(false);
+    setMessage("Signed in.");
+    onAuthSuccess(cleanEmail);
+  };
 
   return (
     <Card className="mx-auto mt-16 max-w-md rounded-3xl border-slate-200 shadow-sm">
@@ -72,7 +88,10 @@ const handleSignIn = async () => {
             placeholder="member@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            autoComplete="username"
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            name="login_email"
           />
         </div>
 
@@ -84,7 +103,8 @@ const handleSignIn = async () => {
               placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete="off"
+              name="login_password"
             />
             <Button
               type="button"
@@ -120,3 +140,4 @@ const handleSignIn = async () => {
     </Card>
   );
 }
+      
