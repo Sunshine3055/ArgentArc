@@ -14,6 +14,18 @@ export function getSupabaseClient(createClient) {
   }
 }
 
+export async function isAllowedUser(client, email) {
+  const cleanEmail = (email || "").trim().toLowerCase();
+
+  const { data, error } = await client
+    .from("allowed_users")
+    .select("email")
+    .eq("email", cleanEmail)
+    .maybeSingle();
+
+  if (error) throw error;
+  return !!data;
+}
 export async function fetchTableData(client, userEmail) {
   const cleanEmail = slugUser(userEmail);
 
