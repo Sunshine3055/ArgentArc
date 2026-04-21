@@ -18,7 +18,7 @@ export default function AuthPanel({ onAuthSuccess, createClient }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
-  const client = getSupabaseClient(createClient);
+  const client = getSupabaseClient();
 
   const handleSignIn = async () => {
     const cleanEmail = slugUser(email);
