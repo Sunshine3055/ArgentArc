@@ -86,11 +86,11 @@ export default function CaseOperationsCenter() {
     return () => listener.subscription.unsubscribe();
   }, [client]);
 
-  useEffect(() => {
-    if (userEmail && syncMode === "local") {
-      saveLocalData(userEmail, dataStore);
-    }
-  }, [userEmail, dataStore, syncMode]);
+ useEffect(() => {
+  if (userEmail) {
+    saveLocalData(userEmail, dataStore);
+  }
+}, [userEmail, dataStore]);
 
   const handleSync = async () => {
     if (!client || !userEmail) {
