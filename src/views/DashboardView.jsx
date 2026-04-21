@@ -46,3 +46,4 @@ export default function DashboardView({ cases, members, training, smdBase, setAc
     </div>
   );
 }
+
