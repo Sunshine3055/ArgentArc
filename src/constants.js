@@ -20,7 +20,15 @@ export const PROVIDERS = [
 ];
 
 export const CASE_TYPES = ["Life Insurance", "Annuity"];
-export const STATUS_OPTIONS = ["Active", "Pending", "Submitted", "Urgent", "Closed"];
+
+export const STATUS_OPTIONS = [
+  "Active",
+  "Pending",
+  "Submitted",
+  "Urgent",
+  "Closed",
+];
+
 export const TRAINING_TYPES = [
   "Internal",
   "Provider",
@@ -66,56 +74,8 @@ export const statusClasses = {
 
 export const defaultData = {
   profile: null,
-  cases: [
-    {
-      id: [],
-      client_name: [],
-      case_type: [],
-      provider: [],
-      provider_other: [],
-      status: [],
-      follow_up_date: [],
-      notes: [],
-      last_log: [],
-    },
-    
-  ],
-  members: [
-    {
-      id: [],
-      member_name: [],
-      agent_id: [],
-      referral_agent_name: [],
-      referral_agent_id: []",
-      current_step: [],
-      issue: [],
-      follow_up_date: [],
-      notes: [],
-      completed_steps: [
-        "New Registered / Financial Academy",
-        "Licensing Exam Preparation",
-        "Finger Print Submission",
-        "Licensing Exam",
-      ],
-    },
-  ],
-  smdBase: [
-    {
-      id: "SMD-001",
-      agent_name: [],
-      agent_id: [],
-      referral_agent_name: [],
-      referral_agent_id: [],
-    },
-  ],
-  training: [
-    {
-      id: "TRN-01",
-      title: [],
-      event_date: [],
-      event_type: [],
-      status: [],
-      notes: [],
-    },
-  ],
+  cases: [],
+  members: [],
+  smdBase: [],
+  training: [],
 };
