@@ -15,13 +15,40 @@ export function getSupabaseClient(createClient) {
 }
 
 export async function fetchTableData(client, userEmail) {
-  const [profileRes, casesRes, membersRes, smdBaseRes, trainingRes] = await Promise.all([
-    client.from("profiles").select("*").eq("email", slugUser(userEmail)).maybeSingle(),
-    client.from("case_records").select("*").order("created_at", { ascending: false }),
-    client.from("member_onboarding").select("*").order("created_at", { ascending: false }),
-    client.from("smd_base").select("*").order("created_at", { ascending: false }),
-    client.from("training_events").select("*").order("created_at", { ascending: false }),
-  ]);
+  const cleanEmail = slugUser(userEmail);
+
+  const [profileRes, casesRes, membersRes, smdBaseRes, trainingRes] =
+    await Promise.all([
+      client
+        .from("profiles")
+        .select("*")
+        .eq("email", cleanEmail)
+        .maybeSingle(),
+
+      client
+        .from("case_records")
+        .select("*")
+        .eq("owner_email", cleanEmail)
+        .order("created_at", { ascending: false }),
+
+      client
+        .from("member_onboarding")
+        .select("*")
+        .eq("owner_email", cleanEmail)
+        .order("created_at", { ascending: false }),
+
+      client
+        .from("smd_base")
+        .select("*")
+        .eq("owner_email", cleanEmail)
+        .order("created_at", { ascending: false }),
+
+      client
+        .from("training_events")
+        .select("*")
+        .eq("owner_email", cleanEmail)
+        .order("created_at", { ascending: false }),
+    ]);
 
   if (profileRes.error) throw profileRes.error;
   if (casesRes.error) throw casesRes.error;
