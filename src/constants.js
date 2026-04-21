@@ -1,14 +1,5 @@
 export const STORAGE_KEY_PREFIX = "case_operations_center_data";
 
-export const ALLOWED_MEMBER_EMAILS = [
-  "shanshanli3055@gmail.com",
-  "shanshanli3055@yahoo.com",
-  "sli.life3055@gmail.com",
-  "agent1@company.com",
-  "agent2@company.com",
-  "admin@company.com",
-];
-
 export const PROVIDERS = [
   "Nationwide",
   "TFA",
