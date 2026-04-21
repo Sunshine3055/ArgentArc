@@ -12,16 +12,17 @@ export function getStorageKey(userEmail) {
   return `case_operations_center_data_${slugUser(userEmail)}`;
 }
 
-export function isRecognizedEmail(email) {
-  const allowed = [
-    "shanshanli3055@gmail.com",
-    "shanshanli3055@yahoo.com",
-    "sli.life3055@gmail.com",
-    "agent1@company.com",
-    "agent2@company.com",
-    "admin@company.com",
-  ];
-  return allowed.includes(slugUser(email));
+export async function isAllowedUser(client, email) {
+  const cleanEmail = (email || "").trim().toLowerCase();
+
+  const { data, error } = await client
+    .from("allowed_users")
+    .select("email")
+    .eq("email", cleanEmail)
+    .maybeSingle();
+
+  if (error) throw error;
+  return !!data;
 }
 
 export function normalizeMember(row) {
