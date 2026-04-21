@@ -25,7 +25,7 @@ export const TRAINING_TYPES = [
   "Internal",
   "Provider",
   "Continuing Education",
-  "Product Special Training"
+  "Product Special Training",
   "WFG",
 ];
 
