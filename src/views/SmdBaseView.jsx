@@ -79,3 +79,4 @@ export default function SmdBaseView({ smdBase, setSmdBase, syncClient, setSyncSt
     </div>
   );
 }
+
