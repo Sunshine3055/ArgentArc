@@ -108,3 +108,5 @@ export async function deleteTrainingEvent(client, id) {
   const { error } = await client.from("training_events").delete().eq("id", id);
   if (error) throw error;
 }
+
+
