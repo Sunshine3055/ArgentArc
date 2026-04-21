@@ -9,11 +9,19 @@ export function slugUser(email) {
 }
 
 export function getStorageKey(userEmail) {
-  return `${STORAGE_KEY_PREFIX}_${slugUser(userEmail)}`;
+  return `case_operations_center_data_${slugUser(userEmail)}`;
 }
 
 export function isRecognizedEmail(email) {
-  return ALLOWED_MEMBER_EMAILS.includes(slugUser(email));
+  const allowed = [
+    "shanshanli3055@gmail.com",
+    "shanshanli3055@yahoo.com",
+    "sli.life3055@gmail.com",
+    "agent1@company.com",
+    "agent2@company.com",
+    "admin@company.com",
+  ];
+  return allowed.includes(slugUser(email));
 }
 
 export function normalizeMember(row) {
