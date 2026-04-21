@@ -145,7 +145,22 @@ export default function CaseOperationsCenter() {
   }
 };
 
-  const handleLogout = async () => {
+ const handleLogout = async () => {
+  const currentEmail = userEmail;
+
+  setUserEmail("");
+  setDataStore(defaultData);
+  setSyncMode("local");
+  setSyncStatus("Logged out");
+
+  if (typeof window !== "undefined" && currentEmail) {
+    try {
+      window.localStorage.removeItem(getStorageKey(currentEmail));
+    } catch (err) {
+      console.error("local cleanup error:", err);
+    }
+  }
+
   try {
     if (client) {
       await client.auth.signOut();
@@ -153,11 +168,6 @@ export default function CaseOperationsCenter() {
   } catch (err) {
     console.error("logout error:", err);
   } finally {
-    setUserEmail("");
-    setDataStore(defaultData);
-    setSyncMode("local");
-    setSyncStatus("Logged out");
-
     if (typeof window !== "undefined") {
       window.location.reload();
     }
