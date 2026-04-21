@@ -5,42 +5,53 @@ function AuthPanel({ onAuthSuccess }) {
   const [message, setMessage] = useState("");
   const client = getSupabaseClient();
 
-  const handleSignIn = async () => {
-    const cleanEmail = slugUser(email);
+  import { getSupabaseClient, isAllowedUser } from "../lib/supabase";
+const handleSignIn = async () => {
+  const cleanEmail = slugUser(email);
 
-    if (!isRecognizedEmail(cleanEmail)) {
-      setPassword("");
-      setMessage("Access denied. Only recognized members can use this app.");
-      return;
-    }
-
-    if (!client) {
-      setPassword("");
-      setMessage("Supabase Auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
-      return;
-    }
-
-    if (!password || password.length < 6) {
-      setPassword("");
-      setMessage("Enter your invited account password.");
-      return;
-    }
-
-    const { error } = await client.auth.signInWithPassword({
-      email: cleanEmail,
-      password,
-    });
-
-    if (error) {
-      setPassword("");
-      setMessage(error.message);
-      return;
-    }
-
+  if (!client) {
     setPassword("");
-    setMessage("Signed in.");
-    onAuthSuccess(cleanEmail);
-  };
+    setMessage("Supabase Auth is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+    return;
+  }
+
+  try {
+    const allowed = await isAllowedUser(client, cleanEmail);
+
+    if (!allowed) {
+      setPassword("");
+      setMessage("Access denied. This email is not approved for this app.");
+      return;
+    }
+  } catch (err) {
+    console.error("allowlist check error:", err);
+    setPassword("");
+    setMessage("Unable to verify access right now.");
+    return;
+  }
+
+  if (!password || password.length < 6) {
+    setPassword("");
+    setMessage("Enter your invited account password.");
+    return;
+  }
+
+  const { error } = await client.auth.signInWithPassword({
+    email: cleanEmail,
+    password,
+  });
+
+  if (error) {
+    setPassword("");
+    setMessage(error.message);
+    return;
+  }
+
+  setPassword("");
+  setShowPassword(false);
+  setMessage("Signed in.");
+  onAuthSuccess(cleanEmail);
+};
 
   return (
     <Card className="mx-auto mt-16 max-w-md rounded-3xl border-slate-200 shadow-sm">
