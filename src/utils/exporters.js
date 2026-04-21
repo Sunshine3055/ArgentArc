@@ -1,7 +1,3 @@
-import * as XLSX from "xlsx";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 export function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -19,19 +15,26 @@ export function exportRowsToCsv(filename, rows) {
   const csv = [
     headers.join(","),
     ...rows.map((row) => headers.map((h) => `"${String(row[h] ?? "").replaceAll('"', '""')}"`).join(",")),
-  ].join("\n");
+  ].join("
+");
   downloadBlob(filename, new Blob([csv], { type: "text/csv;charset=utf-8;" }));
 }
 
-export function exportRowsToXlsx(filename, rows, sheetName = "Data") {
+export async function exportRowsToXlsx(filename, rows, sheetName = "Data") {
   if (!rows.length) return;
+  const XLSX = await import("xlsx");
   const worksheet = XLSX.utils.json_to_sheet(rows);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   XLSX.writeFile(workbook, filename);
 }
 
-export function exportRowsToPdf(filename, title, rows) {
+export async function exportRowsToPdf(filename, title, rows) {
+  if (!rows.length) return;
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
   const doc = new jsPDF();
   doc.setFontSize(14);
   doc.text(title, 14, 16);
