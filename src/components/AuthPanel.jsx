@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { LogIn, ShieldAlert } from "lucide-react";
-import { getSupabaseClient, isAllowedUser } from "../lib/supabase";
+import { getSupabaseClient } from "../lib/supabase";
 import { slugUser } from "../utils/helpers";
 import {
   Card,
