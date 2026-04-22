@@ -13,7 +13,7 @@ import {
   Label,
 } from "./ui";
 
-export default function AuthPanel({ onAuthSuccess, createClient }) {
+export default function AuthPanel({ onAuthSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,35 +31,52 @@ export default function AuthPanel({ onAuthSuccess, createClient }) {
       return;
     }
 
-    try {
-      const allowed = await isAllowedUser(client, cleanEmail);
-
-      if (!allowed) {
-        setPassword("");
-        setMessage("Access denied. This email is not approved for this app.");
-        return;
-      }
-    } catch (err) {
-      console.error("allowlist check error:", err);
-      setPassword("");
-      setMessage("Unable to verify access right now.");
-      return;
-    }
-
     if (!password || password.length < 6) {
       setPassword("");
       setMessage("Enter your invited account password.");
       return;
     }
 
-    const { error } = await client.auth.signInWithPassword({
+    const { error: signInError } = await client.auth.signInWithPassword({
       email: cleanEmail,
       password,
     });
 
-    if (error) {
+    if (signInError) {
       setPassword("");
-      setMessage(error.message);
+      setMessage(signInError.message);
+      return;
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await client.auth.getUser();
+
+    if (userError || !user) {
+      setPassword("");
+      setMessage("Signed in, but unable to load user profile.");
+      return;
+    }
+
+    const { data: profile, error: profileError } = await client
+      .from("profiles")
+      .select("id, email, role, approved")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      console.error("Profile lookup error:", profileError);
+      setPassword("");
+      setMessage("Unable to verify account approval.");
+      return;
+    }
+
+    if (!profile?.approved) {
+      await client.auth.signOut();
+      setPassword("");
+      setShowPassword(false);
+      setMessage("Access denied. Your account is pending approval.");
       return;
     }
 
@@ -140,4 +157,3 @@ export default function AuthPanel({ onAuthSuccess, createClient }) {
     </Card>
   );
 }
-      
