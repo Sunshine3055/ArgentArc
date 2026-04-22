@@ -131,17 +131,13 @@ export default function CaseOperationsCenter() {
   };
 
   const handleLogout = async () => {
-    const currentEmail = userEmail;
-    setUserEmail("");
-    setDataStore(defaultData);
-    
-    if (currentEmail) {
-      localStorage.removeItem(getStorageKey(currentEmail));
-    }
-
-    if (client) await client.auth.signOut();
-    window.location.reload();
-  };
+  const currentEmail = userEmail;
+  if (currentEmail) localStorage.removeItem(getStorageKey(currentEmail));
+  if (client) await client.auth.signOut(); // await fully
+  setUserEmail("");
+  setDataStore(defaultData);
+  window.location.reload();
+};
 
   // --- Render Logic ---
 
@@ -154,7 +150,9 @@ export default function CaseOperationsCenter() {
     return <AuthPanel onAuthSuccess={(email) => syncUserData(email, true)} />;
   }
 
-  const activeSyncClient = syncMode === "cloud" ? client : null;
+  // Instead of killing syncClient when cloud fails, 
+// pass client always and let individual writes handle errors
+const activeSyncClient = client; // always pass the client
 
   return (
     <AppShell
