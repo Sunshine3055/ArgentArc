@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useEffect, useState, useCallback } from "react"; // Added useCallback
 import AuthPanel from "./components/AuthPanel";
 import AppShell from "./components/AppShell";
+import SetPasswordScreen from "./components/SetPasswordScreen";
 import { defaultData } from "./constants";
 import { loadLocalData, saveLocalData, slugUser, getStorageKey } from "./utils/helpers";
 import { fetchTableData, getSupabaseClient, upsertProfile } from "./lib/supabase";
@@ -27,6 +28,7 @@ export default function CaseOperationsCenter() {
   const [dataStore, setDataStore] = useState(defaultData);
   const [syncMode, setSyncMode] = useState("local");
   const [syncStatus, setSyncStatus] = useState("Ready");
+  const [needsPasswordSet, setNeedsPasswordSet] = useState(false);
 
   const { cases, members, smdBase, training } = dataStore;
   const client = getSupabaseClient();
@@ -86,31 +88,50 @@ export default function CaseOperationsCenter() {
   }, [client]);
 
   useEffect(() => {
-    let isMounted = true;
+  let isMounted = true;
 
-    // Supabase handles the initial session check automatically via this listener
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
-      const email = session?.user?.email;
-      
-      if (email) {
-        syncUserData(email, isMounted);
-      } else {
-        if (isMounted) {
-          setUserEmail("");
-          setDataStore(defaultData);
-          setSyncMode("local");
-          setSyncStatus("Logged out");
-        }
+  const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
+    const email = session?.user?.email;
+
+    // Invite or password recovery — force them to set a password first
+    if (event === "SIGNED_IN" && session?.user?.identities?.length === 0) {
+      if (isMounted) {
+        setUserEmail(slugUser(email));
+        setNeedsPasswordSet(true);
+        setAuthChecked(true);
       }
-      
-      if (isMounted) setAuthChecked(true);
-    });
+      return;
+    }
 
-    return () => {
-      isMounted = false;
-      subscription?.unsubscribe();
-    };
-  }, [client, syncUserData]);
+    if (event === "PASSWORD_RECOVERY") {
+      if (isMounted) {
+        setUserEmail(slugUser(email));
+        setNeedsPasswordSet(true);
+        setAuthChecked(true);
+      }
+      return;
+    }
+
+    if (email) {
+      setNeedsPasswordSet(false);
+      syncUserData(email, isMounted);
+    } else {
+      if (isMounted) {
+        setUserEmail("");
+        setDataStore(defaultData);
+        setSyncMode("local");
+        setSyncStatus("Logged out");
+      }
+    }
+
+    if (isMounted) setAuthChecked(true);
+  });
+
+  return () => {
+    isMounted = false;
+    subscription?.unsubscribe();
+  };
+}, [client, syncUserData]);
 
   // --- Local Persistence ---
   useEffect(() => {
@@ -140,6 +161,16 @@ export default function CaseOperationsCenter() {
 };
 
   // --- Render Logic ---
+if (needsPasswordSet) {
+  return (
+    <SetPasswordScreen
+      onComplete={(email) => {
+        setNeedsPasswordSet(false);
+        syncUserData(email, true);
+      }}
+    />
+  );
+}
 
   if (!authChecked) {
     return <div className="p-8 text-sm text-slate-500">Loading authentication...</div>;
