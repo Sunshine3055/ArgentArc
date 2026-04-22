@@ -43,20 +43,28 @@ export const fetchTableData = async (client, userEmail) => {
   }
 };
 
-export async function upsertProfile(client, userEmail) {
+export async function upsertProfile(client, user) {
+  if (!user?.id || !user?.email) {
+    throw new Error("Missing authenticated user id or email.");
+  }
+
   const payload = {
-    email: userEmail,
-    display_name: "Shanshan Li (Sunshine)",
+    id: user.id,
+    email: user.email,
+    display_name: user.user_metadata?.full_name || "Shanshan Li (Sunshine)",
+    updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await client
     .from("profiles")
-    .upsert(payload, { onConflict: "email" });
+    .upsert(payload, { onConflict: "id" })
+    .select();
 
   if (error) {
     console.error("Supabase Profile Upsert Error:", error.message);
     throw error;
   }
+
   return data;
 }
 
