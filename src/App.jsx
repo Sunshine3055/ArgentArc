@@ -1,11 +1,11 @@
-import React, { Suspense, lazy, useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import React, { Suspense, lazy, useEffect, useState, useCallback } from "react"; // Added useCallback
 import AuthPanel from "./components/AuthPanel";
 import AppShell from "./components/AppShell";
 import { defaultData } from "./constants";
 import { loadLocalData, saveLocalData, slugUser, getStorageKey } from "./utils/helpers";
 import { fetchTableData, getSupabaseClient, upsertProfile } from "./lib/supabase";
 
+// Lazy views
 const DashboardView = lazy(() => import("./views/DashboardView"));
 const CasesView = lazy(() => import("./views/CasesView"));
 const NewMemberHub = lazy(() => import("./views/NewMemberHub"));
@@ -31,6 +31,7 @@ export default function CaseOperationsCenter() {
   const { cases, members, smdBase, training } = dataStore;
   const client = getSupabaseClient();
 
+  // --- State Updaters ---
   const setCases = (updater) =>
     setDataStore((prev) => ({
       ...prev,
@@ -55,91 +56,45 @@ export default function CaseOperationsCenter() {
       training: typeof updater === "function" ? updater(prev.training) : updater,
     }));
 
-  // 1. Move the fetching logic to a stable callback
-const syncUserData = useCallback(async (email, isMounted) => {
-  if (!client || !email) return;
-  
-  const clean = slugUser(email);
-  if (isMounted) setUserEmail(clean);
+  // --- Unified Auth & Sync Logic ---
 
-  try {
-    await upsertProfile(client, clean);
-    const remoteData = await fetchTableData(client, clean);
-    if (isMounted) {
-      setDataStore(remoteData);
-      setSyncMode("cloud");
-      setSyncStatus("Cloud synced");
-    }
-  } catch (err) {
-    console.error("Sync error:", err);
-    if (isMounted) {
-      setDataStore(defaultData);
-      setSyncMode("local");
-      setSyncStatus("Cloud error");
-    }
-  }
-}, [client]); // Add other stable dependencies here
-
-useEffect(() => {
-  let isMounted = true;
-
-  const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
-    const email = session?.user?.email;
+  const syncUserData = useCallback(async (email, isMounted) => {
+    if (!client || !email) return;
     
-    if (email) {
-      syncUserData(email, isMounted);
-    } else {
+    const clean = slugUser(email);
+    if (isMounted) setUserEmail(clean);
+
+    try {
+      setSyncStatus("Syncing...");
+      await upsertProfile(client, clean);
+      const remoteData = await fetchTableData(client, clean);
+      
       if (isMounted) {
-        setUserEmail("");
-        setDataStore(defaultData);
+        setDataStore(remoteData);
+        setSyncMode("cloud");
+        setSyncStatus("Cloud synced");
+      }
+    } catch (err) {
+      console.error("Sync error:", err);
+      if (isMounted) {
+        // Fallback to local if cloud fails
+        const local = loadLocalData(clean);
+        setDataStore(local || defaultData);
         setSyncMode("local");
-        setSyncStatus("Logged out");
+        setSyncStatus("Cloud error - Local mode");
       }
     }
-    
-    if (isMounted) setAuthChecked(true);
-  });
+  }, [client]);
 
-  return () => {
-    isMounted = false;
-    subscription?.unsubscribe();
-  };
-}, [client, syncUserData]); // Much cleaner "shape"
+  useEffect(() => {
+    let isMounted = true;
 
-  const { data: listener } = client.auth.onAuthStateChange(async (_event, session) => {
-    try {
-      const email = session?.user?.email || "";
-
+    // Supabase handles the initial session check automatically via this listener
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+      const email = session?.user?.email;
+      
       if (email) {
-        const clean = slugUser(email);
-        if (isMounted) {
-          setUserEmail(clean);
-        }
-
-        try {
-          await upsertProfile(client, clean);
-          const remoteData = await fetchTableData(client, clean);
-
-          if (isMounted) {
-            setDataStore(remoteData);
-            setSyncMode("cloud");
-            setSyncStatus("Cloud synced");
-          }
-        } catch (err) {
-          console.error("auth state load error:", err);
-
-          if (isMounted) {
-            setDataStore({
-              profile: null,
-              cases: [],
-              members: [],
-              smdBase: [],
-              training: [],
-            });
-            setSyncMode("local");
-            setSyncStatus("Cloud error");
-          }
-        }
+        syncUserData(email, isMounted);
       } else {
         if (isMounted) {
           setUserEmail("");
@@ -148,150 +103,56 @@ useEffect(() => {
           setSyncStatus("Logged out");
         }
       }
-    } catch (err) {
-      console.error("auth state error:", err);
-    } finally {
-      if (isMounted) {
-        setAuthChecked(true);
-      }
-    }
-  });
-
-  return () => {
-    isMounted = false;
-    listener?.subscription?.unsubscribe?.();
-  };
-}, [client]);
-
-    const { data: listener } = client.auth.onAuthStateChange(async (_event, session) => {
-      const email = session?.user?.email || "";
-
-      if (email) {
-        const clean = slugUser(email);
-        setUserEmail(clean);
-
-        try {
-          await upsertProfile(client, clean);
-          const remoteData = await fetchTableData(client, clean);
-          setDataStore(remoteData);
-          setSyncMode("cloud");
-          setSyncStatus("Cloud synced");
-        } catch (err) {
-          console.error("auth state load error:", err);
-          setDataStore({
-            profile: null,
-            cases: [],
-            members: [],
-            smdBase: [],
-            training: [],
-          });
-          setSyncMode("local");
-          setSyncStatus("Cloud error");
-        }
-      } else {
-        setUserEmail("");
-        setDataStore(defaultData);
-      }
-
-      setAuthChecked(true);
+      
+      if (isMounted) setAuthChecked(true);
     });
 
-    return () => listener.subscription.unsubscribe();
-  }, [client]);
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, [client, syncUserData]);
 
+  // --- Local Persistence ---
   useEffect(() => {
-    if (userEmail) {
+    if (userEmail && syncStatus !== "Syncing...") {
       saveLocalData(userEmail, dataStore);
     }
-  }, [userEmail, dataStore]);
+  }, [userEmail, dataStore, syncStatus]);
 
-  const handleAuthSuccess = async (email) => {
-    const clean = slugUser(email);
-    setUserEmail(clean);
-
-    if (!client) {
-      setDataStore(loadLocalData(clean));
-      setSyncMode("local");
-      setSyncStatus("Workspace loaded locally");
-      return;
-    }
-
-    try {
-      await upsertProfile(client, clean);
-      const remoteData = await fetchTableData(client, clean);
-      setDataStore(remoteData);
-      setSyncMode("cloud");
-      setSyncStatus("Cloud synced");
-    } catch (err) {
-      console.error("auth success load error:", err);
-      setDataStore({
-        profile: null,
-        cases: [],
-        members: [],
-        smdBase: [],
-        training: [],
-      });
-      setSyncMode("local");
-      setSyncStatus("Cloud error");
-    }
-  };
+  // --- Handlers ---
 
   const handleSync = async () => {
     if (!client || !userEmail) {
-      setSyncMode("local");
       setSyncStatus("Saved locally");
       if (userEmail) saveLocalData(userEmail, dataStore);
       return;
     }
-
-    try {
-      setSyncStatus("Syncing...");
-      const remoteData = await fetchTableData(client, userEmail);
-      setDataStore(remoteData);
-      setSyncMode("cloud");
-      setSyncStatus("Cloud synced");
-    } catch (err) {
-      console.error("handleSync error:", err);
-      setSyncMode("local");
-      setSyncStatus("Cloud error");
-    }
+    await syncUserData(userEmail, true);
   };
 
   const handleLogout = async () => {
     const currentEmail = userEmail;
-
     setUserEmail("");
     setDataStore(defaultData);
-    setSyncMode("local");
-    setSyncStatus("Logged out");
-
-    if (typeof window !== "undefined" && currentEmail) {
-      try {
-        window.localStorage.removeItem(getStorageKey(currentEmail));
-      } catch (err) {
-        console.error("local cleanup error:", err);
-      }
+    
+    if (currentEmail) {
+      localStorage.removeItem(getStorageKey(currentEmail));
     }
 
-    try {
-      if (client) {
-        await client.auth.signOut();
-      }
-    } catch (err) {
-      console.error("logout error:", err);
-    } finally {
-      if (typeof window !== "undefined") {
-        window.location.reload();
-      }
-    }
+    if (client) await client.auth.signOut();
+    window.location.reload();
   };
+
+  // --- Render Logic ---
 
   if (!authChecked) {
     return <div className="p-8 text-sm text-slate-500">Loading authentication...</div>;
   }
 
   if (!userEmail) {
-    return <AuthPanel onAuthSuccess={handleAuthSuccess} />;
+    // AuthPanel handles the actual login UI
+    return <AuthPanel onAuthSuccess={(email) => syncUserData(email, true)} />;
   }
 
   const activeSyncClient = syncMode === "cloud" ? client : null;
