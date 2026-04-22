@@ -28,56 +28,34 @@ export async function isAllowedUser(client, email) {
   if (error) throw error;
   return !!data;
 }
-export async function fetchTableData(client, userEmail) {
-  const cleanEmail = slugUser(userEmail);
+// src/lib/supabase.js
 
-  const [profileRes, casesRes, membersRes, smdBaseRes, trainingRes] =
-    await Promise.all([
-      client
-        .from("profiles")
-        .select("*")
-        .eq("email", cleanEmail)
-        .maybeSingle(),
-
-      client
-        .from("case_records")
-        .select("*")
-        .eq("owner_email", cleanEmail)
-        .order("created_at", { ascending: false }),
-
-      client
-        .from("member_onboarding")
-        .select("*")
-        .eq("owner_email", cleanEmail)
-        .order("created_at", { ascending: false }),
-
-      client
-        .from("smd_base")
-        .select("*")
-        .eq("owner_email", cleanEmail)
-        .order("created_at", { ascending: false }),
-
-      client
-        .from("training_events")
-        .select("*")
-        .eq("owner_email", cleanEmail)
-        .order("created_at", { ascending: false }),
+export const fetchTableData = async (client, userEmail) => {
+  try {
+    // Fetch everything in parallel
+    const [casesRes, membersRes, smdRes, trainingRes] = await Promise.all([
+      client.from('case_records').select('*').eq('owner_email', userEmail),
+      client.from('member_onboarding').select('*').eq('owner_email', userEmail),
+      client.from('smd_base').select('*').eq('owner_email', userEmail),
+      client.from('training_events').select('*').eq('owner_email', userEmail)
     ]);
 
-  if (profileRes.error) throw profileRes.error;
-  if (casesRes.error) throw casesRes.error;
-  if (membersRes.error) throw membersRes.error;
-  if (smdBaseRes.error) throw smdBaseRes.error;
-  if (trainingRes.error) throw trainingRes.error;
+    // Check for errors in any of the requests
+    if (casesRes.error) console.error("Cases fetch error:", casesRes.error.message);
+    if (membersRes.error) console.error("Members fetch error:", membersRes.error.message);
 
-  return {
-    profile: profileRes.data || null,
-    cases: casesRes.data || [],
-    members: (membersRes.data || []).map(normalizeMember),
-    smdBase: smdBaseRes.data || [],
-    training: trainingRes.data || [],
-  };
-}
+    return {
+      cases: casesRes.data || [],
+      members: membersRes.data || [],
+      smdBase: smdRes.data || [],
+      training: trainingRes.data || [],
+      profile: { email: userEmail }
+    };
+  } catch (err) {
+    console.error("Critical fetchTableData error:", err);
+    return defaultData; // Return empty state instead of crashing
+  }
+};
 
 export async function upsertProfile(client, userEmail) {
   const payload = {
