@@ -59,10 +59,21 @@ export const fetchTableData = async (client, userEmail) => {
 
 export async function upsertProfile(client, userEmail) {
   const payload = {
-    email: slugUser(userEmail),
+    email: userEmail, // Use the email passed in directly
     display_name: "Shanshan Li (Sunshine)",
   };
-  await client.from("profiles").upsert(payload, { onConflict: "email" });
+
+  // Capture the response to check for errors
+  const { data, error } = await client
+    .from("profiles")
+    .upsert(payload, { onConflict: "email" });
+
+  if (error) {
+    console.error("Supabase Profile Upsert Error:", error.message);
+    throw error; // This allows App.jsx to catch the error
+  }
+
+  return data;
 }
 
 export async function insertCaseRecord(client, row) {
