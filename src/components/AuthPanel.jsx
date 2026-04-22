@@ -41,6 +41,22 @@ export default function AuthPanel({ onAuthSuccess }) {
     setPassword("");
     onAuthSuccess(cleanEmail);
   };
+const handleForgotPassword = async () => {
+  if (!email) { setMessage("Enter your email first."); return; }
+  const { error } = await client.auth.resetPasswordForEmail(slugUser(email), {
+    redirectTo: "https://your-app.vercel.app"
+  });
+  if (error) { setMessage(error.message); return; }
+  setMessage("Reset link sent — check your email.");
+};
+
+// In JSX, below the Sign In button:
+<button
+  className="text-xs text-slate-400 hover:text-slate-600 underline"
+  onClick={handleForgotPassword}
+>
+  Forgot password?
+</button>
 
   const handleSetPassword = async () => {
     if (!password || password.length < 6) { setMessage("Password must be at least 6 characters."); return; }
