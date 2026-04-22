@@ -79,7 +79,6 @@ export default function CaseOperationsCenter() {
       if (isMounted) {
         // Fallback to local if cloud fails
         const local = loadLocalData(clean);
-        setDataStore(local || defaultData);
         setSyncMode("local");
         setSyncStatus("Cloud error - Local mode");
       }
