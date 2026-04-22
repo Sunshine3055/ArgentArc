@@ -58,19 +58,19 @@ export const fetchTableData = async (client, userEmail) => {
 };
 
 export async function upsertProfile(client, userEmail) {
+  // ONLY send the email. Let the DB handle the ID and timestamps.
   const payload = {
-    email: userEmail, // Use the email passed in directly
+    email: userEmail,
     display_name: "Shanshan Li (Sunshine)",
   };
 
-  // Capture the response to check for errors
   const { data, error } = await client
     .from("profiles")
     .upsert(payload, { onConflict: "email" });
 
   if (error) {
     console.error("Supabase Profile Upsert Error:", error.message);
-    throw error; // This allows App.jsx to catch the error
+    throw error;
   }
 
   return data;
