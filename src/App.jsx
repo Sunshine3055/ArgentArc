@@ -55,82 +55,56 @@ export default function CaseOperationsCenter() {
       training: typeof updater === "function" ? updater(prev.training) : updater,
     }));
 
-  useEffect(() => {
+  // 1. Move the fetching logic to a stable callback
+const syncUserData = useCallback(async (email, isMounted) => {
+  if (!client || !email) return;
+  
+  const clean = slugUser(email);
+  if (isMounted) setUserEmail(clean);
+
+  try {
+    await upsertProfile(client, clean);
+    const remoteData = await fetchTableData(client, clean);
+    if (isMounted) {
+      setDataStore(remoteData);
+      setSyncMode("cloud");
+      setSyncStatus("Cloud synced");
+    }
+  } catch (err) {
+    console.error("Sync error:", err);
+    if (isMounted) {
+      setDataStore(defaultData);
+      setSyncMode("local");
+      setSyncStatus("Cloud error");
+    }
+  }
+}, [client]); // Add other stable dependencies here
+
+useEffect(() => {
   let isMounted = true;
 
-  const initAuth = async () => {
-    if (!client) {
-      if (isMounted) {
-        setAuthChecked(true);
-        setSyncMode("local");
-        setSyncStatus("Supabase not configured");
-      }
-      return;
-    }
-
-    try {
-      const { data, error } = await client.auth.getSession();
-
-      if (error) {
-        throw error;
-      }
-
-      const email = data.session?.user?.email || "";
-
-      if (email) {
-        const clean = slugUser(email);
-        if (isMounted) {
-          setUserEmail(clean);
-        }
-
-        try {
-          await upsertProfile(client, clean);
-          const remoteData = await fetchTableData(client, clean);
-
-          if (isMounted) {
-            setDataStore(remoteData);
-            setSyncMode("cloud");
-            setSyncStatus("Cloud synced");
-          }
-        } catch (err) {
-          console.error("initial session load error:", err);
-
-          if (isMounted) {
-            setDataStore({
-              profile: null,
-              cases: [],
-              members: [],
-              smdBase: [],
-              training: [],
-            });
-            setSyncMode("local");
-            setSyncStatus("Cloud error");
-          }
-        }
-      }
-    } catch (err) {
-      console.error("auth init error:", err);
-
+  const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+    const email = session?.user?.email;
+    
+    if (email) {
+      syncUserData(email, isMounted);
+    } else {
       if (isMounted) {
         setUserEmail("");
         setDataStore(defaultData);
         setSyncMode("local");
-        setSyncStatus("Auth error");
-      }
-    } finally {
-      if (isMounted) {
-        setAuthChecked(true);
+        setSyncStatus("Logged out");
       }
     }
+    
+    if (isMounted) setAuthChecked(true);
+  });
+
+  return () => {
+    isMounted = false;
+    subscription?.unsubscribe();
   };
-
-  initAuth();
-
-  if (!client) {
-    return () => {
-      isMounted = false;
-    };
-  }
+}, [client, syncUserData]); // Much cleaner "shape"
 
   const { data: listener } = client.auth.onAuthStateChange(async (_event, session) => {
     try {
