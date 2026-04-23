@@ -31,9 +31,6 @@ export default function CaseOperationsCenter() {
   const [dataStore, setDataStore] = useState(defaultData);
   const [syncMode, setSyncMode] = useState("local");
   const [syncStatus, setSyncStatus] = useState("Ready");
-  const isRecoveryFlow = window.location.hash.includes("type=recovery");
-  const [needsPasswordSet, setNeedsPasswordSet] = useState(isRecoveryFlow);
-
   const { cases, members, smdBase, training } = dataStore;
   const client = getSupabaseClient();
 
