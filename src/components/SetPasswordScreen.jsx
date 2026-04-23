@@ -33,7 +33,8 @@ export default function SetPasswordScreen({ onComplete }) {
 
     // Clean the invite token from the URL
     window.history.replaceState(null, "", window.location.pathname);
-
+    sessionStorage.removeItem("pendingPasswordReset");
+    
     const email = data.user?.email || "";
     onComplete(slugUser(email));
   };
