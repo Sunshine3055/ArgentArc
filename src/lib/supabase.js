@@ -12,7 +12,12 @@ let supabaseClient = null;
 export function getSupabaseClient() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   if (!supabaseClient) {
-    supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+   supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    detectSessionInUrl: true,
+    flowType: "pkce",
+  }
+});
   }
   return supabaseClient;
 }
