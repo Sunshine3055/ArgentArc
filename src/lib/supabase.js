@@ -59,11 +59,18 @@ export const fetchTableData = async (client, userEmail) => {
 };
 
 export async function upsertProfile(client, userEmail) {
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) return;
+
   const payload = {
+    id: user.id,
     email: userEmail,
     display_name: "Shanshan Li (Sunshine)",
+    role: "agent",
+    is_approved: true,
+    approved: true,
   };
-  await client.from("profiles").upsert(payload, { onConflict: "email" });
+  await client.from("profiles").upsert(payload, { onConflict: "id" });
 }
 
 export async function insertCaseRecord(client, row) {
