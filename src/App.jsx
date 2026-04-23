@@ -24,9 +24,7 @@ function ViewFallback() {
 }
 
 export default function CaseOperationsCenter() {
-  const [needsPasswordSet, setNeedsPasswordSet] = useState(
-    localStorage.getItem("pendingPasswordReset") === "true"
-  );
+  const [needsPasswordSet, setNeedsPasswordSet] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState("");
