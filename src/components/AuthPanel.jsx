@@ -12,7 +12,7 @@ export default function AuthPanel({ onAuthSuccess }) {
   const [mode, setMode] = useState("signin"); // "signin" | "setpassword"
   const [setting, setSetting] = useState(false);
   const client = getSupabaseClient();
-}
+
   // Detect invite/recovery token in URL on mount
   useEffect(() => {
     const hash = window.location.hash;
