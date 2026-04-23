@@ -150,6 +150,10 @@ export default function CaseOperationsCenter() {
 };
 
   // --- Render Logic ---
+if (!authChecked) {
+  return <div className="p-8 text-sm text-slate-500">Loading authentication...</div>;
+}
+
 if (needsPasswordSet) {
   return (
     <SetPasswordScreen
@@ -161,14 +165,9 @@ if (needsPasswordSet) {
   );
 }
 
-  if (!authChecked) {
-    return <div className="p-8 text-sm text-slate-500">Loading authentication...</div>;
-  }
-
-  if (!userEmail) {
-    // AuthPanel handles the actual login UI
-    return <AuthPanel onAuthSuccess={(email) => syncUserData(email, true)} />;
-  }
+if (!userEmail) {
+  return <AuthPanel onAuthSuccess={(email) => syncUserData(email, true)} />;
+}
 
   // Instead of killing syncClient when cloud fails, 
 // pass client always and let individual writes handle errors
