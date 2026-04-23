@@ -38,9 +38,9 @@ export default function AuthPanel({ onAuthSuccess }) {
 
   const handleForgotPassword = async () => {
     if (!email) { setMessage("Enter your email first."); return; }
-    const { error } = await client.auth.resetPasswordForEmail(slugUser(email), {
-      redirectTo: window.location.origin
-    });
+   const { error } = await client.auth.resetPasswordForEmail(slugUser(email), {
+  redirectTo: `${window.location.origin}?recovery=true`
+});
     if (error) { setMessage(error.message); return; }
     setMessage("Reset link sent — check your email.");
   };
