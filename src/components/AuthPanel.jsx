@@ -40,13 +40,13 @@ export default function AuthPanel({ onAuthSuccess }) {
   if (!email) { setMessage("Enter your email first."); return; }
   
   // Store flag BEFORE sending the email
-  sessionStorage.setItem("pendingPasswordReset", "true");
+  localStorage.setItem("pendingPasswordReset", "true");
   
   const { error } = await client.auth.resetPasswordForEmail(slugUser(email), {
     redirectTo: window.location.origin
   });
   if (error) { 
-    sessionStorage.removeItem("pendingPasswordReset");
+    localStorage.removeItem("pendingPasswordReset");
     setMessage(error.message); 
     return; 
   }
