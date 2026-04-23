@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState, useCallback } from "react"; // Added useCallback
+import React, { Suspense, lazy, useEffect, useState, useCallback } from "react";
 import AuthPanel from "./components/AuthPanel";
 import AppShell from "./components/AppShell";
 import SetPasswordScreen from "./components/SetPasswordScreen";
@@ -6,12 +6,14 @@ import { defaultData } from "./constants";
 import { loadLocalData, saveLocalData, slugUser, getStorageKey } from "./utils/helpers";
 import { fetchTableData, getSupabaseClient, upsertProfile } from "./lib/supabase";
 
-// Lazy views
 const DashboardView = lazy(() => import("./views/DashboardView"));
 const CasesView = lazy(() => import("./views/CasesView"));
 const NewMemberHub = lazy(() => import("./views/NewMemberHub"));
 const SmdBaseView = lazy(() => import("./views/SmdBaseView"));
 const TrainingView = lazy(() => import("./views/TrainingView"));
+
+// Move client outside component so it never gets recreated on re-render
+const client = getSupabaseClient();
 
 function ViewFallback() {
   return (
@@ -20,21 +22,20 @@ function ViewFallback() {
     </div>
   );
 }
+
 export default function CaseOperationsCenter() {
-  console.log("HASH:", window.location.hash); // ← add this
- const isRecoveryFlow = localStorage.getItem("pendingPasswordReset") === "true";
-  console.log("IS RECOVERY:", isRecoveryFlow); // ← and this
-  const [needsPasswordSet, setNeedsPasswordSet] = useState(isRecoveryFlow);
+  const [needsPasswordSet, setNeedsPasswordSet] = useState(
+    localStorage.getItem("pendingPasswordReset") === "true"
+  );
   const [activeSection, setActiveSection] = useState("dashboard");
   const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [dataStore, setDataStore] = useState(defaultData);
   const [syncMode, setSyncMode] = useState("local");
   const [syncStatus, setSyncStatus] = useState("Ready");
-  const { cases, members, smdBase, training } = dataStore;
-  const client = getSupabaseClient();
 
-  // --- State Updaters ---
+  const { cases, members, smdBase, training } = dataStore;
+
   const setCases = (updater) =>
     setDataStore((prev) => ({
       ...prev,
@@ -59,19 +60,14 @@ export default function CaseOperationsCenter() {
       training: typeof updater === "function" ? updater(prev.training) : updater,
     }));
 
-  // --- Unified Auth & Sync Logic ---
-
   const syncUserData = useCallback(async (email, isMounted) => {
     if (!client || !email) return;
-    
     const clean = slugUser(email);
     if (isMounted) setUserEmail(clean);
-
     try {
       setSyncStatus("Syncing...");
       await upsertProfile(client, clean);
       const remoteData = await fetchTableData(client, clean);
-      
       if (isMounted) {
         setDataStore(remoteData);
         setSyncMode("cloud");
@@ -80,59 +76,61 @@ export default function CaseOperationsCenter() {
     } catch (err) {
       console.error("Sync error:", err);
       if (isMounted) {
-        // Fallback to local if cloud fails
-        const local = loadLocalData(clean);
         setSyncMode("local");
         setSyncStatus("Cloud error - Local mode");
       }
     }
-  }, [client]);
+  }, []);
 
   useEffect(() => {
-  let isMounted = true;
+    let isMounted = true;
 
-  const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
-  console.log("AUTH EVENT:", event, session?.user?.email); // ← add this line
-  const email = session?.user?.email;
-  // ... rest of your code
+    const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
+      console.log("AUTH EVENT:", event, session?.user?.email);
+      const email = session?.user?.email;
 
-  // Intercept password recovery — don't let them in, force password reset
-  if (event === "PASSWORD_RECOVERY") {
-    if (isMounted) {
-      setNeedsPasswordSet(true);
-      setAuthChecked(true);
-    }
-    return;
-  }
+      // If recovery flag is set, always show reset screen regardless of event
+      if (localStorage.getItem("pendingPasswordReset") === "true") {
+        if (isMounted) {
+          setNeedsPasswordSet(true);
+          setAuthChecked(true);
+        }
+        return;
+      }
 
-  if (email) {
-    setNeedsPasswordSet(false);
-    syncUserData(email, isMounted);
-  } else {
-    if (isMounted) {
-      setUserEmail("");
-      setDataStore(defaultData);
-      setSyncMode("local");
-      setSyncStatus("Logged out");
-    }
-  }
+      if (event === "PASSWORD_RECOVERY") {
+        if (isMounted) {
+          setNeedsPasswordSet(true);
+          setAuthChecked(true);
+        }
+        return;
+      }
 
-  if (isMounted) setAuthChecked(true);
-});
-  return () => {
-    isMounted = false;
-    subscription?.unsubscribe();
-  };
-}, [client, syncUserData]);
+      if (email) {
+        if (isMounted) syncUserData(email, isMounted);
+      } else {
+        if (isMounted) {
+          setUserEmail("");
+          setDataStore(defaultData);
+          setSyncMode("local");
+          setSyncStatus("Logged out");
+        }
+      }
 
-  // --- Local Persistence ---
+      if (isMounted) setAuthChecked(true);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, [syncUserData]);
+
   useEffect(() => {
     if (userEmail && syncStatus !== "Syncing...") {
       saveLocalData(userEmail, dataStore);
     }
   }, [userEmail, dataStore, syncStatus]);
-
-  // --- Handlers ---
 
   const handleSync = async () => {
     if (!client || !userEmail) {
@@ -144,37 +142,39 @@ export default function CaseOperationsCenter() {
   };
 
   const handleLogout = async () => {
-  const currentEmail = userEmail;
-  if (currentEmail) localStorage.removeItem(getStorageKey(currentEmail));
-  if (client) await client.auth.signOut(); // await fully
-  setUserEmail("");
-  setDataStore(defaultData);
-  window.location.reload();
-};
+    const currentEmail = userEmail;
+    if (currentEmail) localStorage.removeItem(getStorageKey(currentEmail));
+    if (client) await client.auth.signOut();
+    setUserEmail("");
+    setDataStore(defaultData);
+    window.location.reload();
+  };
 
-  // --- Render Logic ---
-if (!authChecked) {
-  return <div className="p-8 text-sm text-slate-500">Loading authentication...</div>;
-}
+  // --- Render Logic --- correct order
+  // 1. Recovery screen first — before anything else
+  if (needsPasswordSet) {
+    return (
+      <SetPasswordScreen
+        onComplete={(email) => {
+          localStorage.removeItem("pendingPasswordReset");
+          setNeedsPasswordSet(false);
+          syncUserData(email, true);
+        }}
+      />
+    );
+  }
 
-if (needsPasswordSet) {
-  return (
-    <SetPasswordScreen
-      onComplete={(email) => {
-        setNeedsPasswordSet(false);
-        syncUserData(email, true);
-      }}
-    />
-  );
-}
+  // 2. Loading
+  if (!authChecked) {
+    return <div className="p-8 text-sm text-slate-500">Loading authentication...</div>;
+  }
 
-if (!userEmail) {
-  return <AuthPanel onAuthSuccess={(email) => syncUserData(email, true)} />;
-}
+  // 3. Sign in
+  if (!userEmail) {
+    return <AuthPanel onAuthSuccess={(email) => syncUserData(email, true)} />;
+  }
 
-  // Instead of killing syncClient when cloud fails, 
-// pass client always and let individual writes handle errors
-const activeSyncClient = client; // always pass the client
+  const activeSyncClient = client;
 
   return (
     <AppShell
@@ -196,7 +196,6 @@ const activeSyncClient = client; // always pass the client
             setActiveSection={setActiveSection}
           />
         )}
-
         {activeSection === "members" && (
           <NewMemberHub
             members={members}
@@ -207,7 +206,6 @@ const activeSyncClient = client; // always pass the client
             setSyncStatus={setSyncStatus}
           />
         )}
-
         {activeSection === "smd" && (
           <SmdBaseView
             smdBase={smdBase}
@@ -216,7 +214,6 @@ const activeSyncClient = client; // always pass the client
             setSyncStatus={setSyncStatus}
           />
         )}
-
         {activeSection === "life" && (
           <CasesView
             title="Life Insurance Case Management"
@@ -228,7 +225,6 @@ const activeSyncClient = client; // always pass the client
             setSyncStatus={setSyncStatus}
           />
         )}
-
         {activeSection === "annuity" && (
           <CasesView
             title="Annuity Case Management"
@@ -240,7 +236,6 @@ const activeSyncClient = client; // always pass the client
             setSyncStatus={setSyncStatus}
           />
         )}
-
         {activeSection === "training" && (
           <TrainingView
             training={training}
