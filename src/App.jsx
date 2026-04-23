@@ -91,42 +91,31 @@ export default function CaseOperationsCenter() {
   let isMounted = true;
 
   const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
-    const email = session?.user?.email;
+  const email = session?.user?.email;
 
-    // Invite or password recovery — force them to set a password first
-    if (event === "SIGNED_IN" && session?.user?.identities?.length === 0) {
-      if (isMounted) {
-        setUserEmail(slugUser(email));
-        setNeedsPasswordSet(true);
-        setAuthChecked(true);
-      }
-      return;
+  // Intercept password recovery — don't let them in, force password reset
+  if (event === "PASSWORD_RECOVERY") {
+    if (isMounted) {
+      setNeedsPasswordSet(true);
+      setAuthChecked(true);
     }
+    return;
+  }
 
-    if (event === "PASSWORD_RECOVERY") {
-      if (isMounted) {
-        setUserEmail(slugUser(email));
-        setNeedsPasswordSet(true);
-        setAuthChecked(true);
-      }
-      return;
+  if (email) {
+    setNeedsPasswordSet(false);
+    syncUserData(email, isMounted);
+  } else {
+    if (isMounted) {
+      setUserEmail("");
+      setDataStore(defaultData);
+      setSyncMode("local");
+      setSyncStatus("Logged out");
     }
+  }
 
-    if (email) {
-      setNeedsPasswordSet(false);
-      syncUserData(email, isMounted);
-    } else {
-      if (isMounted) {
-        setUserEmail("");
-        setDataStore(defaultData);
-        setSyncMode("local");
-        setSyncStatus("Logged out");
-      }
-    }
-
-    if (isMounted) setAuthChecked(true);
-  });
-
+  if (isMounted) setAuthChecked(true);
+});
   return () => {
     isMounted = false;
     subscription?.unsubscribe();
