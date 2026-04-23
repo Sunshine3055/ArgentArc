@@ -15,14 +15,7 @@ export default function AuthPanel({ onAuthSuccess }) {
   const [confirm, setConfirm] = useState("");
 
   // Detect invite/recovery token in URL on mount
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes("type=invite") || hash.includes("type=recovery")) {
-      setMode("setpassword");
-      // Supabase auto-exchanges the token — session is now active
-    }
-  }, []);
-
+ 
   const handleSignIn = async () => {
     const cleanEmail = slugUser(email);
     if (!client) { setMessage("Supabase not configured."); return; }
