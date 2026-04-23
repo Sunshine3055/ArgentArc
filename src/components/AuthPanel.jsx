@@ -36,14 +36,22 @@ export default function AuthPanel({ onAuthSuccess }) {
     onAuthSuccess(cleanEmail);
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) { setMessage("Enter your email first."); return; }
-   const { error } = await client.auth.resetPasswordForEmail(slugUser(email), {
-  redirectTo: `${window.location.origin}?recovery=true`
-});
-    if (error) { setMessage(error.message); return; }
-    setMessage("Reset link sent — check your email.");
-  };
+ const handleForgotPassword = async () => {
+  if (!email) { setMessage("Enter your email first."); return; }
+  
+  // Store flag BEFORE sending the email
+  sessionStorage.setItem("pendingPasswordReset", "true");
+  
+  const { error } = await client.auth.resetPasswordForEmail(slugUser(email), {
+    redirectTo: window.location.origin
+  });
+  if (error) { 
+    sessionStorage.removeItem("pendingPasswordReset");
+    setMessage(error.message); 
+    return; 
+  }
+  setMessage("Reset link sent — check your email.");
+};
 
   const handleSetPassword = async () => {
     if (!password || password.length < 6) { setMessage("Password must be at least 6 characters."); return; }
