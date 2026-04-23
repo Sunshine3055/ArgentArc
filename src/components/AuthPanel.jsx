@@ -12,6 +12,7 @@ export default function AuthPanel({ onAuthSuccess }) {
   const [mode, setMode] = useState("signin"); // "signin" | "setpassword"
   const [setting, setSetting] = useState(false);
   const client = getSupabaseClient();
+  const [confirm, setConfirm] = useState("");
 
   // Detect invite/recovery token in URL on mount
   useEffect(() => {
@@ -41,27 +42,20 @@ export default function AuthPanel({ onAuthSuccess }) {
     setPassword("");
     onAuthSuccess(cleanEmail);
   };
-const handleForgotPassword = async () => {
-  if (!email) { setMessage("Enter your email first."); return; }
-  const { error } = await client.auth.resetPasswordForEmail(slugUser(email), {
-    redirectTo: "https://your-app.vercel.app"
-  });
-  if (error) { setMessage(error.message); return; }
-  setMessage("Reset link sent — check your email.");
-};
 
-// In JSX, below the Sign In button:
-<button
-  className="text-xs text-slate-400 hover:text-slate-600 underline"
-  onClick={handleForgotPassword}
->
-  Forgot password?
-</button>
+  const handleForgotPassword = async () => {
+    if (!email) { setMessage("Enter your email first."); return; }
+    const { error } = await client.auth.resetPasswordForEmail(slugUser(email), {
+      redirectTo: window.location.origin
+    });
+    if (error) { setMessage(error.message); return; }
+    setMessage("Reset link sent — check your email.");
+  };
 
   const handleSetPassword = async () => {
     if (!password || password.length < 6) { setMessage("Password must be at least 6 characters."); return; }
+    if (password !== confirm) { setMessage("Passwords don't match."); return; }
     setSetting(true);
-
     const { data, error } = await client.auth.updateUser({ password });
     if (error) { setMessage(error.message); setSetting(false); return; }
 
@@ -102,6 +96,17 @@ const handleForgotPassword = async () => {
               </Button>
             </div>
           </div>
+         <div>
+  <Label>Confirm Password</Label>
+  <Input
+    className="mt-2"
+    type={showPassword ? "text" : "password"}
+    placeholder="Re-enter password"
+    value={confirm}
+    onChange={(e) => setConfirm(e.target.value)}
+    autoComplete="new-password"
+  />
+</div>
           <Button
             className="w-full rounded-2xl bg-[#1f4fa3] text-white hover:bg-[#173d82]"
             onClick={handleSetPassword}
@@ -155,6 +160,16 @@ const handleForgotPassword = async () => {
           onClick={handleSignIn}>
           <LogIn className="mr-2 h-4 w-4" /> Sign In
         </Button>
+        
+        <div className="flex justify-center mt-2">
+          <button
+            className="text-xs text-slate-400 hover:text-slate-600 underline"
+            onClick={handleForgotPassword}
+          >
+            Forgot password?
+          </button>
+        </div>
+
         {message && (
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
             <div className="flex items-start gap-2">
