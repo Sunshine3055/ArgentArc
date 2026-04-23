@@ -22,7 +22,7 @@ function ViewFallback() {
 }
 export default function CaseOperationsCenter() {
   console.log("HASH:", window.location.hash); // ← add this
-  const isRecoveryFlow = window.location.hash.includes("type=recovery");
+  const isRecoveryFlow = window.location.hash.includes("recovery=true");
   console.log("IS RECOVERY:", isRecoveryFlow); // ← and this
   const [needsPasswordSet, setNeedsPasswordSet] = useState(isRecoveryFlow);
   const [activeSection, setActiveSection] = useState("dashboard");
