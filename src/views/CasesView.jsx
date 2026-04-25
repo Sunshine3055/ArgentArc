@@ -18,34 +18,42 @@ export default function CasesView({ title, seedType, cases, setCases, syncClient
     setForm({ id: "", client_name: "", case_type: seedType === "All" ? "Life Insurance" : seedType, provider: "Nationwide", provider_other: "", status: "Active", follow_up_date: "", notes: "", last_log: "" });
   };
 
-  const handleSave = async () => {
-    if (!form.id || !form.client_name) return;
-    if (!syncClient) {
-      if (editingId) setCases((prev) => prev.map((item) => (item.id === editingId ? { ...form } : item)));
-      else setCases((prev) => [{ ...form }, ...prev]);
-      setOpen(false);
-      resetForm();
-      return;
-    }
-    try {
-      setSyncStatus("Saving...");
-      if (editingId) {
-        const { id: _removed, ...formWithoutId } = form;
-        const saved = await insertCaseRecord(syncClient, { ...formWithoutId, owner_email: ownerEmail });
-        setCases((prev) => prev.map((item) => (item.id === editingId ? saved : item)));
-      } else {
-        const saved = await insertCaseRecord(syncClient, { ...form, owner_email: ownerEmail });
-        setCases((prev) => [saved, ...prev]);
-      }
-      setSyncStatus("Saved");
-      setOpen(false);
-      resetForm();
-    } catch (err) {
-      console.error("case save error:", err);
-      setSyncStatus("Save error");
-    }
-  };
+ const handleSave = async () => {
+  if (!form.client_name) return;
+  if (!syncClient) {
+    if (editingId) setCases((prev) => prev.map((item) => (item.id === editingId ? { ...item, ...form } : item)));
+    else setCases((prev) => [{ ...form, id: crypto.randomUUID() }, ...prev]);
+    setOpen(false);
+    resetForm();
+    return;
+  }
+  try {
+    setSyncStatus("Saving...");
 
+    // Strip fields that don't exist in the database
+    const { id: _id, last_log: _log, provider_other: _po, ...cleanForm } = form;
+
+    if (editingId) {
+      // UPDATE existing record
+      const saved = await updateCaseRecord(syncClient, editingId, cleanForm);
+      setCases((prev) => prev.map((item) => (item.id === editingId ? saved : item)));
+    } else {
+      // INSERT new record
+      const saved = await insertCaseRecord(syncClient, {
+        ...cleanForm,
+        owner_email: ownerEmail,
+      });
+      setCases((prev) => [saved, ...prev]);
+    }
+
+    setSyncStatus("Saved");
+    setOpen(false);
+    resetForm();
+  } catch (err) {
+    console.error("case save error:", err);
+    setSyncStatus("Save error");
+  }
+};
   const handleDelete = async (id) => {
     if (!syncClient) {
       setCases((prev) => prev.filter((row) => row.id !== id));
