@@ -125,7 +125,15 @@ export async function updateSmdBase(client, id, row) {
 }
 
 export async function insertTrainingEvent(client, row) {
-  const { data, error } = await client.from("training_events").insert(row).select().single();
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const payload = {
+    ...row,
+    owner_id: user.id,
+  };
+
+  const { data, error } = await client.from("training_events").insert(payload).select().single();
   if (error) throw error;
   return data;
 }
