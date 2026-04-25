@@ -44,6 +44,7 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
             </nav>
 
             {/* Upcoming Training */}
+            {console.log("TRAINING IN SIDEBAR:", training)}
             {training.length > 0 && (
               <div className="mt-6">
                 <div className="mb-2 px-1 text-xs uppercase tracking-wider text-blue-100">Upcoming Training</div>
