@@ -163,6 +163,7 @@ const activeSyncClient = client; // always pass the client
       onSync={handleSync}
       userEmail={userEmail}
       onLogout={handleLogout}
+      training={training}
     >
       <Suspense fallback={<ViewFallback />}>
         {activeSection === "dashboard" && (
