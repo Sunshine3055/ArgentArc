@@ -163,5 +163,44 @@ export async function deleteTrainingEvent(client, id) {
   const { error } = await client.from("training_events").delete().eq("id", id);
   if (error) throw error;
 }
+export async function fetchWeeklyActivity(client, userEmail) {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Sunday
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  monday.setHours(0, 0, 0, 0);
 
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  const start = monday.toISOString();
+  const end = sunday.toISOString();
+
+  const [casesRes, membersRes, smdRes, trainingRes] = await Promise.all([
+    client.from("case_records").select("created_at").eq("owner_email", userEmail).gte("created_at", start).lte("created_at", end),
+    client.from("member_onboarding").select("created_at").eq("owner_email", userEmail).gte("created_at", start).lte("created_at", end),
+    client.from("smd_base").select("created_at").eq("owner_email", userEmail).gte("created_at", start).lte("created_at", end),
+    client.from("training_events").select("created_at").eq("owner_email", userEmail).gte("created_at", start).lte("created_at", end),
+  ]);
+
+  const allRecords = [
+    ...(casesRes.data || []),
+    ...(membersRes.data || []),
+    ...(smdRes.data || []),
+    ...(trainingRes.data || []),
+  ];
+
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const counts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+
+  allRecords.forEach((record) => {
+    const d = new Date(record.created_at);
+    const dayIndex = d.getDay(); // 0=Sun, 1=Mon...
+    const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dayIndex];
+    if (counts[dayName] !== undefined) counts[dayName]++;
+  });
+
+  return days.map((day) => ({ day, completed: counts[day] }));
+}
 
