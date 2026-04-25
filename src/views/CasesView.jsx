@@ -30,7 +30,8 @@ export default function CasesView({ title, seedType, cases, setCases, syncClient
     try {
       setSyncStatus("Saving...");
       if (editingId) {
-        const saved = await updateCaseRecord(syncClient, editingId, form);
+        const { id: _removed, ...formWithoutId } = form;
+        const saved = await insertCaseRecord(syncClient, { ...formWithoutId, owner_email: ownerEmail });
         setCases((prev) => prev.map((item) => (item.id === editingId ? saved : item)));
       } else {
         const saved = await insertCaseRecord(syncClient, { ...form, owner_email: ownerEmail });
