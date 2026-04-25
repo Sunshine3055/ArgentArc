@@ -79,7 +79,12 @@ export async function upsertProfile(client, userEmail) {
 }
 
 export async function insertCaseRecord(client, row) {
-  const { data, error } = await client.from("case_records").insert(row).select().single();
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await client.from("case_records")
+    .insert({ ...row, owner_id: user.id })
+    .select().single();
   if (error) throw error;
   return data;
 }
@@ -96,7 +101,12 @@ export async function deleteCaseRecord(client, id) {
 }
 
 export async function insertMemberOnboarding(client, row) {
-  const { data, error } = await client.from("member_onboarding").insert(row).select().single();
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await client.from("member_onboarding")
+    .insert({ ...row, owner_id: user.id })
+    .select().single();
   if (error) throw error;
   return normalizeMember(data);
 }
@@ -113,7 +123,12 @@ export async function deleteMemberOnboarding(client, id) {
 }
 
 export async function insertSmdBase(client, row) {
-  const { data, error } = await client.from("smd_base").insert(row).select().single();
+  const { data: { user } } = await client.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await client.from("smd_base")
+    .insert({ ...row, owner_id: user.id })
+    .select().single();
   if (error) throw error;
   return data;
 }
