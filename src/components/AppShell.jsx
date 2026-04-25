@@ -42,6 +42,23 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
                 );
               })}
             </nav>
+
+            {/* Upcoming Training */}
+            {training.length > 0 && (
+              <div className="mt-6">
+                <div className="mb-2 px-1 text-xs uppercase tracking-wider text-blue-100">Upcoming Training</div>
+                <div className="space-y-2">
+                  {training.slice(0, 3).map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-white/10 bg-white/10 p-3">
+                      <div className="text-sm font-medium text-white">{item.title}</div>
+                      <div className="mt-1 text-xs text-blue-200">{item.event_date} · {item.event_type}</div>
+                      {item.notes && <div className="mt-1 text-xs text-blue-300 line-clamp-2">{item.notes}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </aside>
         <main className="flex min-w-0 flex-col">
