@@ -9,13 +9,13 @@ export default function CasesView({ title, seedType, cases, setCases, syncClient
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [filter, setFilter] = useState("All");
-  const [form, setForm] = useState({ id: "", client_name: "", case_type: seedType, provider: "Nationwide", provider_other: "", status: "Active", follow_up_date: "", notes: "", last_log: "" });
+  const [form, setForm] = useState({ case_ref: "", client_name: "", case_type: seedType, provider: "Nationwide", provider_other: "", status: "Active", follow_up_date: "", notes: "", last_log: "" });
 
   const filteredCases = useMemo(() => cases.filter((item) => (seedType === "All" || item.case_type === seedType) && (filter === "All" || item.status === filter)), [cases, seedType, filter]);
 
   const resetForm = () => {
     setEditingId(null);
-    setForm({ id: "", client_name: "", case_type: seedType === "All" ? "Life Insurance" : seedType, provider: "Nationwide", provider_other: "", status: "Active", follow_up_date: "", notes: "", last_log: "" });
+    setForm({ case_ref: "", client_name: "", case_type: seedType === "All" ? "Life Insurance" : seedType, provider: "Nationwide", provider_other: "", status: "Active", follow_up_date: "", notes: "", last_log: "" });
   };
 
  const handleSave = async () => {
