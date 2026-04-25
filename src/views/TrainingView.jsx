@@ -11,38 +11,38 @@ export default function TrainingView({ training, setTraining, syncClient, ownerE
   const [type, setType] = useState("Internal");
   const [notes, setNotes] = useState("");
 
- export async function insertTrainingEvent(client, row) {
-  try {
-    // Get the current user's ID from Supabase auth
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
+  const addTraining = async () => {
+    if (!title || !date) return;
 
-    // Create the row with owner_id instead of owner_email
-    const trainingData = {
-      title: row.title,
-      event_date: row.event_date,
-      event_type: row.event_type,
-      status: row.status,
-      notes: row.notes,
-      owner_id: user.id  // ← Use user.id instead of owner_email
+    const newEvent = {
+      title,
+      event_date: date,
+      event_type: type,
+      status: "Scheduled",
+      notes,
+      owner_email: ownerEmail,
     };
 
-    console.log("Inserting training event:", trainingData);
-    const { data, error } = await client.from("training_events").insert(trainingData).select().single();
-    
-    if (error) {
-      console.error("Supabase insert error:", error);
-      throw error;
+    if (syncClient) {
+      try {
+        setSyncStatus("Saving...");
+        const saved = await insertTrainingEvent(syncClient, newEvent);
+        setTraining((prev) => [saved, ...prev]);
+        setSyncStatus("Saved");
+      } catch (err) {
+        console.error("training insert error:", err);
+        setSyncStatus("Save error");
+        return;
+      }
+    } else {
+      setTraining((prev) => [{ ...newEvent, id: crypto.randomUUID() }, ...prev]);
     }
-    
-    return data;
-  } catch (err) {
-    console.error("Training event insert error:", err);
-    throw err;
-  }
-}
+
+    setTitle("");
+    setDate("");
+    setType("Internal");
+    setNotes("");
+  };
 
   const toggleDone = async (item) => {
     const updated = { ...item, status: item.status === "Done" ? "Scheduled" : "Done" };
@@ -71,8 +71,80 @@ export default function TrainingView({ training, setTraining, syncClient, ownerE
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-      <Card className="rounded-3xl border-slate-200 shadow-sm"><CardHeader><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><CardTitle>Schedule Training</CardTitle><CardDescription>Track internal training, provider sessions, and special product education</CardDescription></div><ExportMenu label="Training Schedule" rows={training} baseName="training-schedule" /></div></CardHeader><CardContent className="space-y-4"><div><Label>Training Title</Label><Input className="mt-2" value={title} onChange={(e) => setTitle(e.target.value)} /></div><div><Label>Date</Label><Input className="mt-2" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div><div><Label>Training Type</Label><div className="mt-2"><Select value={type} onValueChange={setType}><SelectContent>{TRAINING_TYPES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div></div><div><Label>Notes</Label><Textarea className="mt-2 min-h-[120px]" value={notes} onChange={(e) => setNotes(e.target.value)} /></div><PrimaryButton className="w-full" onClick={addTraining}><Plus className="mr-2 h-4 w-4" /> Add Training Event</PrimaryButton></CardContent></Card>
-      <Card className="rounded-3xl border-slate-200 shadow-sm"><CardHeader><CardTitle>Training Schedule</CardTitle><CardDescription>Compact list view for quick operational planning</CardDescription></CardHeader><CardContent className="space-y-4">{training.map((item) => <div key={item.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><div className="font-medium">{item.title}</div><div className="mt-1 text-sm text-slate-500">{item.event_date} · {item.event_type}</div><div className="mt-3 text-sm text-slate-600">{item.notes}</div></div><div className="flex flex-wrap gap-2"><StatusBadge value={item.status} /><Button size="sm" variant="outline" className="rounded-xl" onClick={() => toggleDone(item)}>{item.status === "Done" ? "Reopen" : "Mark Done"}</Button><Button size="sm" variant="outline" className="rounded-xl" onClick={() => handleDelete(item)}><Trash2 className="h-4 w-4" /></Button></div></div></div>)}</CardContent></Card>
+      <Card className="rounded-3xl border-slate-200 shadow-sm">
+        <CardHeader>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle>Schedule Training</CardTitle>
+              <CardDescription>Track internal training, provider sessions, and special product education</CardDescription>
+            </div>
+            <ExportMenu label="Training Schedule" rows={training} baseName="training-schedule" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Training Title</Label>
+            <Input className="mt-2" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div>
+            <Label>Date</Label>
+            <Input className="mt-2" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </div>
+          <div>
+            <Label>Training Type</Label>
+            <div className="mt-2">
+              <Select value={type} onValueChange={setType}>
+                <SelectContent>
+                  {TRAINING_TYPES.map((item) => (
+                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label>Notes</Label>
+            <Textarea className="mt-2 min-h-[120px]" value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+          <PrimaryButton className="w-full" onClick={addTraining}>
+            <Plus className="mr-2 h-4 w-4" /> Add Training Event
+          </PrimaryButton>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle>Training Schedule</CardTitle>
+          <CardDescription>Compact list view for quick operational planning</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {training.length === 0 && (
+            <p className="text-sm text-slate-400">No training events yet.</p>
+          )}
+          {training.map((item) => (
+            <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="font-medium">{item.title}</div>
+                  <div className="mt-1 text-sm text-slate-500">{item.event_date} · {item.event_type}</div>
+                  <div className="mt-3 text-sm text-slate-600">{item.notes}</div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <StatusBadge value={item.status} />
+                  <Button size="sm" variant="outline" className="rounded-xl"
+                    onClick={() => toggleDone(item)}>
+                    {item.status === "Done" ? "Reopen" : "Mark Done"}
+                  </Button>
+                  <Button size="sm" variant="outline" className="rounded-xl"
+                    onClick={() => handleDelete(item)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
