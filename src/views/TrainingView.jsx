@@ -11,28 +11,38 @@ export default function TrainingView({ training, setTraining, syncClient, ownerE
   const [type, setType] = useState("Internal");
   const [notes, setNotes] = useState("");
 
-  const addTraining = async () => {
-    if (!title || !date) return;
-    const row = { title, event_date: date, event_type: type, status: "Scheduled", notes, owner_email: ownerEmail };
-    if (syncClient) {
-      try {
-        setSyncStatus("Saving...");
-        const saved = await insertTrainingEvent(syncClient, row);
-        setTraining((prev) => [saved, ...prev]);
-        setSyncStatus("Saved");
-      } catch (err) {
-        console.error("training save error:", err);
-        setSyncStatus("Save error");
-        return;
-      }
-    } else {
-      setTraining((prev) => [{ id: `TRN-${Date.now()}`, ...row }, ...prev]);
+ export async function insertTrainingEvent(client, row) {
+  try {
+    // Get the current user's ID from Supabase auth
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) {
+      throw new Error("User not authenticated");
     }
-    setTitle("");
-    setDate("");
-    setType("Internal");
-    setNotes("");
-  };
+
+    // Create the row with owner_id instead of owner_email
+    const trainingData = {
+      title: row.title,
+      event_date: row.event_date,
+      event_type: row.event_type,
+      status: row.status,
+      notes: row.notes,
+      owner_id: user.id  // ← Use user.id instead of owner_email
+    };
+
+    console.log("Inserting training event:", trainingData);
+    const { data, error } = await client.from("training_events").insert(trainingData).select().single();
+    
+    if (error) {
+      console.error("Supabase insert error:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (err) {
+    console.error("Training event insert error:", err);
+    throw err;
+  }
+}
 
   const toggleDone = async (item) => {
     const updated = { ...item, status: item.status === "Done" ? "Scheduled" : "Done" };
