@@ -4,7 +4,7 @@ import { cn } from "../utils/helpers";
 import { Button, Input } from "./ui";
 import { SyncBadge } from "./common";
 
-export default function AppShell({ children, activeSection, setActiveSection, syncMode, syncStatus, onSync, userEmail, onLogout }) {
+export default function AppShell({ children, activeSection, setActiveSection, syncMode, syncStatus, onSync, userEmail, onLogout, training = [] }) {
   const navItems = [
     { key: "dashboard", label: "Operations Dashboard", icon: LayoutDashboard },
     { key: "members", label: "New Member Hub", icon: Users },
