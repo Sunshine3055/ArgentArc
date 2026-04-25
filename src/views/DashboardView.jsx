@@ -1,6 +1,8 @@
 import React from "react";
 import { AlertCircle, Briefcase, Building2, CalendarClock, Users } from "lucide-react";
 import { ResponsiveContainer, Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
+import { useState, useEffect } from "react";
+import { fetchWeeklyActivity } from "../lib/supabase";
 import { weeklyData } from "../constants";
 import { getFollowUpStatus } from "../utils/helpers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Separator } from "../components/ui";
@@ -24,7 +26,15 @@ function UpcomingTrainingPanel({ training }) {
   );
 }
 
-export default function DashboardView({ cases, members, training, smdBase, setActiveSection }) {
+export default function DashboardView({ cases, members, training, smdBase, setActiveSection, syncClient, ownerEmail }) {
+  const [chartData, setChartData] = useState(weeklyData);
+
+  useEffect(() => {
+    if (!syncClient || !ownerEmail) return;
+    fetchWeeklyActivity(syncClient, ownerEmail)
+      .then((data) => setChartData(data))
+      .catch(() => setChartData(weeklyData)); // fallback to static on error
+  }, [syncClient, ownerEmail]);
   const activeCases = cases.filter((c) => c.status !== "Closed").length;
   const pendingFollowups = cases.filter((c) => c.follow_up_date).length;
   const newMembersInProgress = members.length;
@@ -41,7 +51,7 @@ export default function DashboardView({ cases, members, training, smdBase, setAc
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-2xl font-semibold">Operations Dashboard</h2><p className="mt-1 text-sm text-slate-500">Export current saved data when you need offline review, reporting, or audit support.</p></div><ExportMenu label="Dashboard Export" rows={exportRows} baseName="case-operations-dashboard" /></div>
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6"><KpiCard title="Active Cases" value={activeCases} hint="Open items across workflows" icon={Briefcase} /><KpiCard title="Pending Follow-Ups" value={pendingFollowups} hint="Scheduled actions requiring review" icon={CalendarClock} /><KpiCard title="New Member Progress" value={newMembersInProgress} hint="Licensing and affiliation pipeline" icon={Users} /><KpiCard title="Follow-Ups Due Soon" value={dueSoon} hint="Needs attention within 2 days" icon={CalendarClock} /><KpiCard title="Overdue Items" value={overdueItems} hint="Requires urgent action" icon={AlertCircle} /><KpiCard title="SMD Base" value={smdBase.length} hint="Completed agent records" icon={Building2} /></section>
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.75fr]"><Card className="rounded-3xl border-slate-200 shadow-sm"><CardHeader><CardTitle>Weekly Productivity</CardTitle><CardDescription>Visible output keeps the week honest.</CardDescription></CardHeader><CardContent className="h-[320px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={weeklyData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="day" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="completed" radius={[8, 8, 0, 0]} fill="#1f4fa3" /></BarChart></ResponsiveContainer></CardContent></Card><Card className="rounded-3xl border-slate-200 shadow-sm"><CardHeader><CardTitle>Priority Focus</CardTitle><CardDescription>What deserves attention first</CardDescription></CardHeader><CardContent className="space-y-4">{cases.filter((c) => c.status === "Urgent" || c.status === "Pending").slice(0, 4).map((item) => <div key={item.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><div className="font-medium">{item.client_name}</div><div className="mt-1 font-mono text-xs text-slate-500">{item.id}</div></div><StatusBadge value={item.status} /></div><div className="mt-3 text-sm text-slate-600">{item.notes}</div><div className="mt-3 flex items-center justify-between text-sm text-slate-500"><span>{item.provider === "Other" ? item.provider_other : item.provider}</span><span>Follow-up: {item.follow_up_date || "—"}</span></div></div>)}<Separator /><div className="grid grid-cols-2 gap-3"><PrimaryButton onClick={() => setActiveSection("members")}>Open Member Hub</PrimaryButton><PrimaryButton onClick={() => setActiveSection("training")}>View Training</PrimaryButton></div></CardContent></Card></section>
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.25fr_0.75fr]"><Card className="rounded-3xl border-slate-200 shadow-sm"><CardHeader><CardTitle>Weekly Productivity</CardTitle><CardDescription>Visible output keeps the week honest.</CardDescription></CardHeader><CardContent className="h-[320px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="day" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="completed" radius={[8, 8, 0, 0]} fill="#1f4fa3" /></BarChart></ResponsiveContainer></CardContent></Card><Card className="rounded-3xl border-slate-200 shadow-sm"><CardHeader><CardTitle>Priority Focus</CardTitle><CardDescription>What deserves attention first</CardDescription></CardHeader><CardContent className="space-y-4">{cases.filter((c) => c.status === "Urgent" || c.status === "Pending").slice(0, 4).map((item) => <div key={item.id} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><div className="font-medium">{item.client_name}</div><div className="mt-1 font-mono text-xs text-slate-500">{item.id}</div></div><StatusBadge value={item.status} /></div><div className="mt-3 text-sm text-slate-600">{item.notes}</div><div className="mt-3 flex items-center justify-between text-sm text-slate-500"><span>{item.provider === "Other" ? item.provider_other : item.provider}</span><span>Follow-up: {item.follow_up_date || "—"}</span></div></div>)}<Separator /><div className="grid grid-cols-2 gap-3"><PrimaryButton onClick={() => setActiveSection("members")}>Open Member Hub</PrimaryButton><PrimaryButton onClick={() => setActiveSection("training")}>View Training</PrimaryButton></div></CardContent></Card></section>
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]"><RecentCasesPanel cases={cases.slice(0, 6)} title="Recent Case Activity" /><UpcomingTrainingPanel training={training} /></section>
     </div>
   );
