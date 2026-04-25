@@ -18,7 +18,7 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
     <div className="min-h-screen bg-[#eef2f6] text-slate-900 [font-family:Inter,ui-sans-serif,system-ui,sans-serif]">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[280px_1fr]">
         <aside className="border-r border-slate-200 bg-[#1f4fa3] text-white">
-          <div className="flex h-20 items-center border-b border-white/10 px-6">
+          <div className="flex h-24 items-center border-b border-white/10 px-6 py-6 mt-2">
             <div>
               <div className="text-xs uppercase tracking-[0.24em] text-blue-100">Professional Case Management</div>
               <div className="mt-1 text-2xl font-semibold">Case Operations Center</div>
