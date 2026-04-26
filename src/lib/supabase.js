@@ -39,6 +39,7 @@ export async function isAllowedUser(client, email) {
 export const fetchTableData = async (client, userEmail) => {
   try {
     const { data: { user } } = await client.auth.getUser();
+    console.log("FETCH USER:", user?.id, user?.email);
     if (!user) return defaultData;
 
     const [casesRes, membersRes, smdRes, trainingRes] = await Promise.all([
@@ -48,9 +49,10 @@ export const fetchTableData = async (client, userEmail) => {
       client.from('training_events').select('*').eq('owner_id', user.id),
     ]);
 
-    if (casesRes.error) console.error("Cases fetch error:", casesRes.error.message);
-    if (membersRes.error) console.error("Members fetch error:", membersRes.error.message);
-    if (trainingRes.error) console.error("Training fetch error:", trainingRes.error.message);
+    console.log("CASES:", casesRes.data, casesRes.error);
+    console.log("TRAINING:", trainingRes.data, trainingRes.error);
+    console.log("MEMBERS:", membersRes.data, membersRes.error);
+    console.log("SMD:", smdRes.data, smdRes.error);
 
     return {
       cases: casesRes.data || [],
