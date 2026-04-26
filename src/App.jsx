@@ -194,26 +194,48 @@ const filteredMembers = searchQuery.trim()
     >
       <Suspense fallback={<ViewFallback />}>
         {activeSection === "dashboard" && (
-          <DashboardView
-             cases={cases}
-             members={members}
-             training={training}
-             smdBase={smdBase}
-             setActiveSection={setActiveSection}
-             syncClient={activeSyncClient}
-             ownerEmail={userEmail}
-            />
-        )}
-        {activeSection === "members" && (
-          <NewMemberHub
-            members={members}
-            setMembers={setMembers}
-            setSmdBase={setSmdBase}
-            syncClient={activeSyncClient}
-            ownerEmail={userEmail}
-            setSyncStatus={setSyncStatus}
-          />
-        )}
+  <DashboardView
+    cases={filteredCases}
+    members={filteredMembers}
+    training={training}
+    smdBase={smdBase}
+    setActiveSection={setActiveSection}
+    syncClient={activeSyncClient}
+    ownerEmail={userEmail}
+  />
+)}
+{activeSection === "members" && (
+  <NewMemberHub
+    members={filteredMembers}
+    setMembers={setMembers}
+    setSmdBase={setSmdBase}
+    syncClient={activeSyncClient}
+    ownerEmail={userEmail}
+    setSyncStatus={setSyncStatus}
+  />
+)}
+{activeSection === "life" && (
+  <CasesView
+    title="Life Insurance Case Management"
+    seedType="Life Insurance"
+    cases={filteredCases}
+    setCases={setCases}
+    syncClient={activeSyncClient}
+    ownerEmail={userEmail}
+    setSyncStatus={setSyncStatus}
+  />
+)}
+{activeSection === "annuity" && (
+  <CasesView
+    title="Annuity Case Management"
+    seedType="Annuity"
+    cases={filteredCases}
+    setCases={setCases}
+    syncClient={activeSyncClient}
+    ownerEmail={userEmail}
+    setSyncStatus={setSyncStatus}
+  />
+)}
         {activeSection === "smd" && (
           <SmdBaseView
             smdBase={smdBase}
@@ -221,29 +243,7 @@ const filteredMembers = searchQuery.trim()
             syncClient={activeSyncClient}
             setSyncStatus={setSyncStatus}
           />
-        )}
-        {activeSection === "life" && (
-          <CasesView
-            title="Life Insurance Case Management"
-            seedType="Life Insurance"
-            cases={cases}
-            setCases={setCases}
-            syncClient={activeSyncClient}
-            ownerEmail={userEmail}
-            setSyncStatus={setSyncStatus}
-          />
-        )}
-        {activeSection === "annuity" && (
-          <CasesView
-            title="Annuity Case Management"
-            seedType="Annuity"
-            cases={cases}
-            setCases={setCases}
-            syncClient={activeSyncClient}
-            ownerEmail={userEmail}
-            setSyncStatus={setSyncStatus}
-          />
-        )}
+      )}
         {activeSection === "training" && (
           <TrainingView
             training={training}
