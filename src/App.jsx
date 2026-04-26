@@ -173,7 +173,14 @@ export default function CaseOperationsCenter() {
   }
 
   const activeSyncClient = client;
-  console.log("APP RENDER - training count:", training.length);
+  const filteredCases = searchQuery.trim()
+  ? cases.filter((c) => c.client_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+  : cases;
+
+const filteredMembers = searchQuery.trim()
+  ? members.filter((m) => m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.client_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+  : members;
   return (
     <AppShell
       activeSection={activeSection}
