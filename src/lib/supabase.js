@@ -38,17 +38,19 @@ export async function isAllowedUser(client, email) {
 
 export const fetchTableData = async (client, userEmail) => {
   try {
-    // Fetch everything in parallel
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) return defaultData;
+
     const [casesRes, membersRes, smdRes, trainingRes] = await Promise.all([
-      client.from('case_records').select('*').eq('owner_email', userEmail),
-      client.from('member_onboarding').select('*').eq('owner_email', userEmail),
-      client.from('smd_base').select('*').eq('owner_email', userEmail),
-      client.from('training_events').select('*').eq('owner_email', userEmail)
+      client.from('case_records').select('*').eq('owner_id', user.id),
+      client.from('member_onboarding').select('*').eq('owner_id', user.id),
+      client.from('smd_base').select('*').eq('owner_id', user.id),
+      client.from('training_events').select('*').eq('owner_id', user.id),
     ]);
 
-    // Check for errors in any of the requests
     if (casesRes.error) console.error("Cases fetch error:", casesRes.error.message);
     if (membersRes.error) console.error("Members fetch error:", membersRes.error.message);
+    if (trainingRes.error) console.error("Training fetch error:", trainingRes.error.message);
 
     return {
       cases: casesRes.data || [],
@@ -59,7 +61,7 @@ export const fetchTableData = async (client, userEmail) => {
     };
   } catch (err) {
     console.error("Critical fetchTableData error:", err);
-    return defaultData; // Return empty state instead of crashing
+    return defaultData;
   }
 };
 
