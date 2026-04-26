@@ -69,7 +69,15 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
                 <h1 className="text-2xl font-semibold text-slate-900">Structured tracking for cases, licensing, and training</h1>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative min-w-[240px]"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />export default function AppShell({ children, activeSection, setActiveSection, syncMode, syncStatus, onSync, userEmail, onLogout, training = [], searchQuery = "", setSearchQuery }) {</div>
+                <div className="relative min-w-[240px]">
+  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+  <Input
+    placeholder="Search client name, member name..."
+    className="pl-9"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+  />
+</div>
                 <SyncBadge mode={syncMode} syncStatus={syncStatus} onSync={onSync} />
                 <Button variant="outline" className="rounded-xl"><Bell className="mr-2 h-4 w-4" /> Alerts</Button>
               </div>
