@@ -183,6 +183,7 @@ export default function CaseOperationsCenter() {
       onSync={handleSync}
       userEmail={userEmail}
       onLogout={handleLogout}
+      training={training}
     >
       <Suspense fallback={<ViewFallback />}>
         {activeSection === "dashboard" && (
