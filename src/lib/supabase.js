@@ -49,12 +49,7 @@ export const fetchTableData = async (client, userEmail) => {
       client.from('training_events').select('*').eq('owner_id', user.id),
     ]);
 
-    console.log("CASES:", casesRes.data, casesRes.error);
-    console.log("TRAINING:", trainingRes.data, trainingRes.error);
-    console.log("MEMBERS:", membersRes.data, membersRes.error);
-    console.log("SMD:", smdRes.data, smdRes.error);
-
-    return {
+     return {
       cases: casesRes.data || [],
       members: membersRes.data || [],
       smdBase: smdRes.data || [],
