@@ -84,7 +84,7 @@ export default function CaseOperationsCenter() {
     let isMounted = true;
 
     const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
-      console.log("AUTH EVENT:", event, session?.user?.email);
+     
       const email = session?.user?.email;
 
       // If recovery flag is set, always show reset screen regardless of event
