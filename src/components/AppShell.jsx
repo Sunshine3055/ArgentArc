@@ -4,7 +4,7 @@ import { cn } from "../utils/helpers";
 import { Button, Input } from "./ui";
 import { SyncBadge } from "./common";
 
-export default function AppShell({ children, activeSection, setActiveSection, syncMode, syncStatus, onSync, userEmail, onLogout, training = [] }) {
+export default function AppShell({ children, activeSection, setActiveSection, syncMode, syncStatus, onSync, userEmail, onLogout, training = [], searchQuery = "", setSearchQuery }) {
   const navItems = [
     { key: "dashboard", label: "Operations Dashboard", icon: LayoutDashboard },
     { key: "members", label: "New Member Hub", icon: Users },
@@ -44,7 +44,6 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
             </nav>
 
             {/* Upcoming Training */}
-            {console.log("TRAINING IN SIDEBAR:", training)}
             {training.length > 0 && (
               <div className="mt-6">
                 <div className="mb-2 px-1 text-xs uppercase tracking-wider text-blue-100">Upcoming Training</div>
@@ -70,7 +69,7 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
                 <h1 className="text-2xl font-semibold text-slate-900">Structured tracking for cases, licensing, and training</h1>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative min-w-[240px]"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input placeholder="Search client, case ID, provider..." className="pl-9" /></div>
+                <div className="relative min-w-[240px]"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />export default function AppShell({ children, activeSection, setActiveSection, syncMode, syncStatus, onSync, userEmail, onLogout, training = [], searchQuery = "", setSearchQuery }) {</div>
                 <SyncBadge mode={syncMode} syncStatus={syncStatus} onSync={onSync} />
                 <Button variant="outline" className="rounded-xl"><Bell className="mr-2 h-4 w-4" /> Alerts</Button>
               </div>
