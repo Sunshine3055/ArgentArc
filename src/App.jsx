@@ -173,7 +173,7 @@ export default function CaseOperationsCenter() {
   }
 
   const activeSyncClient = client;
-
+  console.log("APP RENDER - training count:", training.length);
   return (
     <AppShell
       activeSection={activeSection}
