@@ -81,14 +81,14 @@ export default function DashboardView({ cases, members, training, smdBase, setAc
       </div>
 
       {/* KPI Cards — equal size */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <KpiCard title="Active Cases" value={activeCases} hint="Open items across workflows" icon={Briefcase} />
-        <KpiCard title="Pending Follow-Ups" value={pendingFollowups} hint="Scheduled actions requiring review" icon={CalendarClock} />
-        <KpiCard title="New Member Progress" value={newMembersInProgress} hint="Licensing and affiliation pipeline" icon={Users} />
-        <KpiCard title="Follow-Ups Due Soon" value={dueSoon} hint="Needs attention within 2 days" icon={CalendarClock} />
-        <KpiCard title="Overdue Items" value={overdueItems} hint="Requires urgent action" icon={AlertCircle} />
-        <KpiCard title="SMD Base" value={smdBase.length} hint="Completed agent records" icon={Building2} />
-      </section>
+     <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+  <KpiCard title="Active Cases" value={activeCases} hint="Open items across workflows" icon={Briefcase} onClick={() => setActiveSection("life")} />
+  <KpiCard title="Pending Follow-Ups" value={pendingFollowups} hint="Scheduled actions requiring review" icon={CalendarClock} onClick={() => setActiveSection("life")} />
+  <KpiCard title="New Member Progress" value={newMembersInProgress} hint="Licensing and affiliation pipeline" icon={Users} onClick={() => setActiveSection("members")} />
+  <KpiCard title="Follow-Ups Due Soon" value={dueSoon} hint="Needs attention within 2 days" icon={CalendarClock} onClick={() => setActiveSection("members")} />
+  <KpiCard title="Overdue Items" value={overdueItems} hint="Requires urgent action" icon={AlertCircle} onClick={() => setActiveSection("members")} />
+  <KpiCard title="SMD Base" value={smdBase.length} hint="Completed agent records" icon={Building2} onClick={() => setActiveSection("smd")} />
+</section>
 
       {/* Priority Focus (left) + Weekly Productivity (right) */}
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[0.75fr_1.25fr]">
