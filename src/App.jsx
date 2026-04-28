@@ -31,6 +31,7 @@ export default function CaseOperationsCenter() {
   const [dataStore, setDataStore] = useState(defaultData);
   const [syncMode, setSyncMode] = useState("local");
   const [syncStatus, setSyncStatus] = useState("Ready");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { cases, members, smdBase, training } = dataStore;
 
@@ -191,6 +192,8 @@ const filteredMembers = searchQuery.trim()
       userEmail={userEmail}
       onLogout={handleLogout}
       training={training}
+       searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
     >
       <Suspense fallback={<ViewFallback />}>
         {activeSection === "dashboard" && (
