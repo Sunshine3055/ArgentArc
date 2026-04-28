@@ -6,6 +6,7 @@ import { defaultData } from "./constants";
 import { loadLocalData, saveLocalData, slugUser, getStorageKey } from "./utils/helpers";
 import { fetchTableData, getSupabaseClient, upsertProfile } from "./lib/supabase";
 
+const AllCasesView = lazy(() => import("./views/AllCasesView"));
 const DashboardView = lazy(() => import("./views/DashboardView"));
 const CasesView = lazy(() => import("./views/CasesView"));
 const NewMemberHub = lazy(() => import("./views/NewMemberHub"));
@@ -205,6 +206,12 @@ const filteredMembers = searchQuery.trim()
     setActiveSection={setActiveSection}
     syncClient={activeSyncClient}
     ownerEmail={userEmail}
+  />
+)}
+     {activeSection === "allcases" && (
+  <AllCasesView
+    cases={filteredCases}
+    setActiveSection={setActiveSection}
   />
 )}
 {activeSection === "members" && (
