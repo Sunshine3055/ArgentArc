@@ -42,20 +42,9 @@ export function PrimaryButton({ children, className = "", ...props }) {
   return <Button className={cn("rounded-2xl bg-[#1f4fa3] text-white hover:bg-[#173d82]", className)} {...props}>{children}</Button>;
 }
 
-export function KpiCard({ title, value, hint, icon: Icon }) {
+export function KpiCard({ title, value, hint, icon: Icon, onClick }) {
   return (
-    <div>
-      <Card className="rounded-3xl border-slate-200 bg-white shadow-sm">
+    <div onClick={onClick} className={onClick ? "cursor-pointer" : ""}>
+      <Card className={`rounded-3xl border-slate-200 bg-white shadow-sm transition ${onClick ? "hover:border-[#1f4fa3] hover:shadow-md" : ""}`}>
         <CardContent className="flex items-start justify-between p-6">
-          <div>
-            <div className="text-sm font-medium text-slate-500">{title}</div>
-            <div className="mt-3 text-3xl font-semibold tracking-tight">{value}</div>
-            <div className="mt-2 text-sm text-slate-500">{hint}</div>
-          </div>
-          <div className="rounded-2xl bg-slate-100 p-3 text-[#1f4fa3]"><Icon className="h-5 w-5" /></div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
