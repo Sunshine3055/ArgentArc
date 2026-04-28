@@ -229,7 +229,10 @@ export default function NewMemberHub({ members, setMembers, setSmdBase, syncClie
               <Input placeholder="Member Name *" value={newName} onChange={(e) => setNewName(e.target.value)} />
               <Input placeholder="Agent ID" value={newAgentId} onChange={(e) => setNewAgentId(e.target.value)} />
               <Input placeholder="Email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
-              <Input placeholder="Date of Birth" type="date" value={newDob} onChange={(e) => setNewDob(e.target.value)} />
+              <div>
+                  <Label className="text-xs text-slate-500">Date of Birth</Label>
+                  <Input type="date" className="mt-1" value={newDob} onChange={(e) => setNewDob(e.target.value)} />
+</div>
               <Input placeholder="Address" value={newAddress} onChange={(e) => setNewAddress(e.target.value)} />
               <Input placeholder="Referral Agent" value={newReferralAgent} onChange={(e) => setNewReferralAgent(e.target.value)} />
               <Input placeholder="Referral Agent ID" value={newReferralAgentId} onChange={(e) => setNewReferralAgentId(e.target.value)} />
