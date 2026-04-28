@@ -10,18 +10,22 @@ export default function TrainingView({ training, setTraining, syncClient, ownerE
   const [date, setDate] = useState("");
   const [type, setType] = useState("Internal");
   const [notes, setNotes] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
 
   const addTraining = async () => {
     if (!title || !date) return;
 
     const newEvent = {
-      title,
-      event_date: date,
-      event_type: type,
-      status: "Scheduled",
-      notes,
-      owner_email: ownerEmail,
-    };
+  title,
+  event_date: date,
+  event_type: type,
+  status: "Scheduled",
+  notes,
+  start_time: startTime || null,
+  end_time: endTime || null,
+  owner_email: ownerEmail,
+};
 
     if (syncClient) {
       try {
@@ -42,6 +46,8 @@ export default function TrainingView({ training, setTraining, syncClient, ownerE
     setDate("");
     setType("Internal");
     setNotes("");
+    setStartTime("");
+    setEndTime("");
   };
 
   const toggleDone = async (item) => {
@@ -103,6 +109,14 @@ export default function TrainingView({ training, setTraining, syncClient, ownerE
             </div>
           </div>
           <div>
+          <div>
+  <Label>Start Time</Label>
+  <Input className="mt-2" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+ </div>
+  <div>
+    <Label>End Time</Label>
+    <Input className="mt-2" type="time" value={endTime} onChange={(e) =>  setEndTime(e.target.value)} />
+  </div>
             <Label>Notes</Label>
             <Textarea className="mt-2 min-h-[120px]" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
@@ -126,7 +140,10 @@ export default function TrainingView({ training, setTraining, syncClient, ownerE
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <div className="font-medium">{item.title}</div>
-                  <div className="mt-1 text-sm text-slate-500">{item.event_date} · {item.event_type}</div>
+                  <div className="mt-1 text-sm text-slate-500">
+  {item.event_date} · {item.event_type}
+  {item.start_time && ` · ${item.start_time}${item.end_time ? ` – ${item.end_time}` : ""}`}
+</div>
                   <div className="mt-3 text-sm text-slate-600">{item.notes}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
