@@ -64,6 +64,16 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
               </div>
             )}
 
+         </div>
+
+          {/* Copyright */}
+          <div className="px-4 py-4 mt-auto border-t border-white/10">
+            <p className="text-xs text-blue-200 text-center">
+              © 2026 Shanshan Li · ArgentArc
+            </p>
+            <p className="text-xs text-blue-300 text-center mt-1">
+              All rights reserved
+            </p>
           </div>
         </aside>
         <main className="flex min-w-0 flex-col">
