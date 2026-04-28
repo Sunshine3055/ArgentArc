@@ -7,7 +7,7 @@ import { getFollowUpStatus } from "../utils/helpers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Separator } from "../components/ui";
 import { ExportMenu, KpiCard, PrimaryButton, StatusBadge } from "../components/common";
 
-function RecentCasesPanel({ cases, title = "Case Activity" }) {
+function RecentCasesPanel({ cases, title = "Case Activity", setActiveSection }) {
   return (
     <Card className="rounded-3xl border-slate-200 shadow-sm">
       <CardHeader>
@@ -29,7 +29,7 @@ function RecentCasesPanel({ cases, title = "Case Activity" }) {
             </thead>
             <tbody>
               {cases.map((row) => (
-                <tr key={row.id} className="border-b border-slate-100 text-sm">
+               <tr key={row.id} className="border-b border-slate-100 text-sm cursor-pointer hover:bg-slate-50 transition" onClick={() => setActiveSection("allcases")}>
                   <td className="py-4 font-mono">{row.case_ref || "—"}</td>
                   <td className="py-4 font-medium">{row.client_name}</td>
                   <td className="py-4">{row.case_type}</td>
@@ -82,8 +82,8 @@ export default function DashboardView({ cases, members, training, smdBase, setAc
 
       {/* KPI Cards — equal size */}
      <section className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-  <KpiCard title="Active Cases" value={activeCases} hint="Open items across workflows" icon={Briefcase} onClick={() => setActiveSection("life")} />
-  <KpiCard title="Pending Follow-Ups" value={pendingFollowups} hint="Scheduled actions requiring review" icon={CalendarClock} onClick={() => setActiveSection("life")} />
+  <KpiCard title="Active Cases" value={activeCases} hint="Open items across workflows" icon={Briefcase} onClick={() => setActiveSection("allcases")} />
+<KpiCard title="Pending Follow-Ups" value={pendingFollowups} hint="Scheduled actions requiring review" icon={CalendarClock} onClick={() => setActiveSection("allcases")} />
   <KpiCard title="New Member Progress" value={newMembersInProgress} hint="Licensing and affiliation pipeline" icon={Users} onClick={() => setActiveSection("members")} />
   <KpiCard title="Follow-Ups Due Soon" value={dueSoon} hint="Needs attention within 2 days" icon={CalendarClock} onClick={() => setActiveSection("members")} />
   <KpiCard title="Overdue Items" value={overdueItems} hint="Requires urgent action" icon={AlertCircle} onClick={() => setActiveSection("members")} />
@@ -153,7 +153,7 @@ export default function DashboardView({ cases, members, training, smdBase, setAc
 
       {/* Recent Case Activity — full width */}
       <section>
-        <RecentCasesPanel cases={cases.slice(0, 6)} title="Recent Case Activity" />
+       <RecentCasesPanel cases={cases.slice(0, 6)} title="Recent Case Activity" setActiveSection={setActiveSection} />
       </section>
 
     </div>
