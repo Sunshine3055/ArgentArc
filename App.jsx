@@ -207,11 +207,15 @@ export default function CaseOperationsCenter() {
         m.name?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : members;
+  const handleSetActiveSection = (section) => {
+  setSearchQuery("");
+  setActiveSection(section);
+};
 
   return (
     <AppShell
       activeSection={activeSection}
-      setActiveSection={setActiveSection}
+      setActiveSection={handleSetActiveSection}
       syncMode={syncMode}
       syncStatus={syncStatus}
       onSync={handleSync}
@@ -228,7 +232,7 @@ export default function CaseOperationsCenter() {
             members={filteredMembers}
             training={training}
             smdBase={smdBase}
-            setActiveSection={setActiveSection}
+            setActiveSection={handleSetActiveSection}
             syncClient={activeSyncClient}
             ownerEmail={userEmail}
           />
@@ -236,7 +240,7 @@ export default function CaseOperationsCenter() {
         {activeSection === "allcases" && (
           <AllCasesView
             cases={filteredCases}
-            setActiveSection={setActiveSection}
+            setActiveSection={handleSetActiveSection}
           />
         )}
         {activeSection === "members" && (
