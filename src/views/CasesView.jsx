@@ -31,7 +31,10 @@ export default function CasesView({ title, seedType, cases, setCases, syncClient
     setSyncStatus("Saving...");
 
     // Strip fields that don't exist in the database
-    const { id: _id, last_log: _log, provider_other: _po, ...cleanForm } = form;
+   const { id: _id, last_log: _log, provider_other: _po, ...cleanForm } = form;
+
+// Convert empty date strings to null
+if (cleanForm.follow_up_date === "") cleanForm.follow_up_date = null;
 
     if (editingId) {
       // UPDATE existing record
