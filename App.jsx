@@ -1,16 +1,19 @@
-import React, { Suspense, lazy, useEffect, useState, useCallback } from "react"; // Added useCallback
+import React, { Suspense, lazy, useEffect, useState, useCallback } from "react";
 import AuthPanel from "./components/AuthPanel";
 import AppShell from "./components/AppShell";
+import SetPasswordScreen from "./components/SetPasswordScreen";
 import { defaultData } from "./constants";
 import { loadLocalData, saveLocalData, slugUser, getStorageKey } from "./utils/helpers";
 import { fetchTableData, getSupabaseClient, upsertProfile } from "./lib/supabase";
 
-// Lazy views
 const DashboardView = lazy(() => import("./views/DashboardView"));
 const CasesView = lazy(() => import("./views/CasesView"));
 const NewMemberHub = lazy(() => import("./views/NewMemberHub"));
 const SmdBaseView = lazy(() => import("./views/SmdBaseView"));
 const TrainingView = lazy(() => import("./views/TrainingView"));
+const AllCasesView = lazy(() => import("./views/AllCasesView"));
+
+const client = getSupabaseClient();
 
 function ViewFallback() {
   return (
@@ -21,6 +24,7 @@ function ViewFallback() {
 }
 
 export default function CaseOperationsCenter() {
+  const [needsPasswordSet, setNeedsPasswordSet] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [authChecked, setAuthChecked] = useState(false);
   const [userEmail, setUserEmail] = useState("");
@@ -30,9 +34,20 @@ export default function CaseOperationsCenter() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { cases, members, smdBase, training } = dataStore;
-  const client = getSupabaseClient();
 
-  // --- State Updaters ---
+  // Auto-clear stale recovery flag older than 30 minutes
+  useEffect(() => {
+    const flag = localStorage.getItem("pendingPasswordReset");
+    const timestamp = localStorage.getItem("pendingPasswordResetTime");
+    if (flag && timestamp) {
+      const age = Date.now() - parseInt(timestamp);
+      if (age > 30 * 60 * 1000) {
+        localStorage.removeItem("pendingPasswordReset");
+        localStorage.removeItem("pendingPasswordResetTime");
+      }
+    }
+  }, []);
+
   const setCases = (updater) =>
     setDataStore((prev) => ({
       ...prev,
@@ -57,19 +72,14 @@ export default function CaseOperationsCenter() {
       training: typeof updater === "function" ? updater(prev.training) : updater,
     }));
 
-  // --- Unified Auth & Sync Logic ---
-
   const syncUserData = useCallback(async (email, isMounted) => {
     if (!client || !email) return;
-    
     const clean = slugUser(email);
     if (isMounted) setUserEmail(clean);
-
     try {
       setSyncStatus("Syncing...");
       await upsertProfile(client, clean);
       const remoteData = await fetchTableData(client, clean);
-      
       if (isMounted) {
         setDataStore(remoteData);
         setSyncMode("cloud");
@@ -78,23 +88,44 @@ export default function CaseOperationsCenter() {
     } catch (err) {
       console.error("Sync error:", err);
       if (isMounted) {
-        // Fallback to local if cloud fails
-        const local = loadLocalData(clean);
         setSyncMode("local");
         setSyncStatus("Cloud error - Local mode");
       }
     }
-  }, [client]);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
-    // Supabase handles the initial session check automatically via this listener
-    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
       const email = session?.user?.email;
-      
+
+      if (localStorage.getItem("pendingPasswordReset") === "true") {
+        if (isMounted) {
+          setNeedsPasswordSet(true);
+          setAuthChecked(true);
+        }
+        return;
+      }
+
+      if (event === "PASSWORD_RECOVERY") {
+        if (isMounted) {
+          setNeedsPasswordSet(true);
+          setAuthChecked(true);
+        }
+        return;
+      }
+
+      if (event === "SIGNED_IN" && window.location.search.includes("recovery=true")) {
+        if (isMounted) {
+          setNeedsPasswordSet(true);
+          setAuthChecked(true);
+        }
+        return;
+      }
+
       if (email) {
-        syncUserData(email, isMounted);
+        if (isMounted) syncUserData(email, isMounted);
       } else {
         if (isMounted) {
           setUserEmail("");
@@ -103,7 +134,7 @@ export default function CaseOperationsCenter() {
           setSyncStatus("Logged out");
         }
       }
-      
+
       if (isMounted) setAuthChecked(true);
     });
 
@@ -111,16 +142,13 @@ export default function CaseOperationsCenter() {
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, [client, syncUserData]);
+  }, [syncUserData]);
 
-  // --- Local Persistence ---
   useEffect(() => {
     if (userEmail && syncStatus !== "Syncing...") {
       saveLocalData(userEmail, dataStore);
     }
   }, [userEmail, dataStore, syncStatus]);
-
-  // --- Handlers ---
 
   const handleSync = async () => {
     if (!client || !userEmail) {
@@ -132,31 +160,56 @@ export default function CaseOperationsCenter() {
   };
 
   const handleLogout = async () => {
-  const currentEmail = userEmail;
-  if (currentEmail) localStorage.removeItem(getStorageKey(currentEmail));
-  if (client) await client.auth.signOut(); // await fully
-  setUserEmail("");
-  setDataStore(defaultData);
-  window.location.reload();
-};
+    const currentEmail = userEmail;
+    if (currentEmail) localStorage.removeItem(getStorageKey(currentEmail));
+    localStorage.removeItem("pendingPasswordReset");
+    localStorage.removeItem("pendingPasswordResetTime");
+    if (client) await client.auth.signOut();
+    setUserEmail("");
+    setDataStore(defaultData);
+    window.location.reload();
+  };
 
   // --- Render Logic ---
+  if (needsPasswordSet) {
+    return (
+      <SetPasswordScreen
+        onComplete={(email) => {
+          localStorage.removeItem("pendingPasswordReset");
+          localStorage.removeItem("pendingPasswordResetTime");
+          setNeedsPasswordSet(false);
+          syncUserData(email, true);
+        }}
+      />
+    );
+  }
 
   if (!authChecked) {
     return <div className="p-8 text-sm text-slate-500">Loading authentication...</div>;
   }
 
   if (!userEmail) {
-    // AuthPanel handles the actual login UI
     return <AuthPanel onAuthSuccess={(email) => syncUserData(email, true)} />;
   }
 
-  // Instead of killing syncClient when cloud fails, 
-// pass client always and let individual writes handle errors
-const activeSyncClient = client; // always pass the client
+  const activeSyncClient = client;
+
+  // --- Search Filters ---
+  const filteredCases = searchQuery.trim()
+    ? cases.filter((c) =>
+        c.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : cases;
+
+  const filteredMembers = searchQuery.trim()
+    ? members.filter((m) =>
+        m.member_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : members;
 
   return (
-   <AppShell
+    <AppShell
       activeSection={activeSection}
       setActiveSection={setActiveSection}
       syncMode={syncMode}
@@ -171,17 +224,24 @@ const activeSyncClient = client; // always pass the client
       <Suspense fallback={<ViewFallback />}>
         {activeSection === "dashboard" && (
           <DashboardView
-            cases={cases}
-            members={members}
+            cases={filteredCases}
+            members={filteredMembers}
             training={training}
             smdBase={smdBase}
             setActiveSection={setActiveSection}
+            syncClient={activeSyncClient}
+            ownerEmail={userEmail}
           />
         )}
-
+        {activeSection === "allcases" && (
+          <AllCasesView
+            cases={filteredCases}
+            setActiveSection={setActiveSection}
+          />
+        )}
         {activeSection === "members" && (
           <NewMemberHub
-            members={members}
+            members={filteredMembers}
             setMembers={setMembers}
             setSmdBase={setSmdBase}
             syncClient={activeSyncClient}
@@ -189,7 +249,6 @@ const activeSyncClient = client; // always pass the client
             setSyncStatus={setSyncStatus}
           />
         )}
-
         {activeSection === "smd" && (
           <SmdBaseView
             smdBase={smdBase}
@@ -198,31 +257,28 @@ const activeSyncClient = client; // always pass the client
             setSyncStatus={setSyncStatus}
           />
         )}
-
         {activeSection === "life" && (
           <CasesView
             title="Life Insurance Case Management"
             seedType="Life Insurance"
-            cases={cases}
+            cases={filteredCases}
             setCases={setCases}
             syncClient={activeSyncClient}
             ownerEmail={userEmail}
             setSyncStatus={setSyncStatus}
           />
         )}
-
         {activeSection === "annuity" && (
           <CasesView
             title="Annuity Case Management"
             seedType="Annuity"
-            cases={cases}
+            cases={filteredCases}
             setCases={setCases}
             syncClient={activeSyncClient}
             ownerEmail={userEmail}
             setSyncStatus={setSyncStatus}
           />
         )}
-
         {activeSection === "training" && (
           <TrainingView
             training={training}
