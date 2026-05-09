@@ -227,16 +227,19 @@ export default function CaseOperationsCenter() {
     >
       <Suspense fallback={<ViewFallback />}>
         {activeSection === "dashboard" && (
-          <DashboardView
-            cases={filteredCases}
-            members={filteredMembers}
-            training={training}
-            smdBase={smdBase}
-            setActiveSection={handleSetActiveSection}
-            syncClient={activeSyncClient}
-            ownerEmail={userEmail}
-          />
-        )}
+  <DashboardView
+    cases={cases}
+    members={members}
+    training={training}
+    smdBase={smdBase}
+    setActiveSection={handleSetActiveSection}
+    syncClient={activeSyncClient}
+    ownerEmail={userEmail}
+    filteredCases={filteredCases}
+    filteredMembers={filteredMembers}
+    searchQuery={searchQuery}
+  />
+)}
         {activeSection === "allcases" && (
           <AllCasesView
             cases={filteredCases}
