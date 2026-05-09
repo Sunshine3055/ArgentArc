@@ -46,7 +46,7 @@ function RecentCasesPanel({ cases, title = "Case Activity", setActiveSection }) 
   );
 }
 
-export default function DashboardView({ cases, members, training, smdBase, setActiveSection, syncClient, ownerEmail }) {
+export default function DashboardView({ cases, members, training, smdBase, setActiveSection, syncClient, ownerEmail, filteredCases, filteredMembers, searchQuery }) {
   const [chartData, setChartData] = useState(weeklyData);
 
   useEffect(() => {
@@ -153,7 +153,11 @@ export default function DashboardView({ cases, members, training, smdBase, setAc
 
       {/* Recent Case Activity — full width */}
       <section>
-       <RecentCasesPanel cases={cases.slice(0, 6)} title="Recent Case Activity" setActiveSection={setActiveSection} />
+      <RecentCasesPanel
+  cases={(searchQuery?.trim() ? filteredCases : cases).slice(0, 6)}
+  title={searchQuery?.trim() ? `Search Results for "${searchQuery}"` : "Recent Case Activity"}
+  setActiveSection={setActiveSection}
+/>
       </section>
 
     </div>
