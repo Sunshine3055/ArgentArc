@@ -87,11 +87,12 @@ export default function AppShell({ children, activeSection, setActiveSection, sy
                 <div className="relative min-w-[240px]">
   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
   <Input
-    placeholder="Search client name, member name..."
-    className="pl-9"
-    value={searchQuery}
-    onChange={(e) => setSearchQuery(e.target.value)}
-  />
+  placeholder={activeSection === "dashboard" ? "Navigate to a section to search..." : "Search client name, member name..."}
+  className="pl-9"
+  value={activeSection === "dashboard" ? "" : searchQuery}
+  onChange={(e) => activeSection !== "dashboard" && setSearchQuery(e.target.value)}
+  disabled={activeSection === "dashboard"}
+/>
 </div>
                 <SyncBadge mode={syncMode} syncStatus={syncStatus} onSync={onSync} />
                 <Button variant="outline" className="rounded-xl"><Bell className="mr-2 h-4 w-4" /> Alerts</Button>
