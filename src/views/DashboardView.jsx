@@ -1,4 +1,3 @@
-console.log("DASHBOARD cases count:", cases.length, "filtered:", filteredCases?.length);
 import React, { useState, useEffect } from "react";
 import { AlertCircle, Briefcase, Building2, CalendarClock, Users } from "lucide-react";
 import { ResponsiveContainer, Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
