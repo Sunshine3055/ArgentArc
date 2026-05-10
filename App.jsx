@@ -195,18 +195,18 @@ export default function CaseOperationsCenter() {
   const activeSyncClient = client;
 
   // --- Search Filters ---
-  const filteredCases = searchQuery.trim()
-    ? cases.filter((c) =>
-        c.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : cases;
+ const filteredCases = searchQuery.trim() && activeSection !== "dashboard"
+  ? cases.filter((c) =>
+      c.client_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  : cases;
 
-  const filteredMembers = searchQuery.trim()
-    ? members.filter((m) =>
-        m.member_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.name?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : members;
+const filteredMembers = searchQuery.trim() && activeSection !== "dashboard"
+  ? members.filter((m) =>
+      m.member_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  : members;
   const handleSetActiveSection = (section) => {
   setSearchQuery("");
   setActiveSection(section);
